@@ -1,0 +1,71 @@
+QWidget {
+    background-color: white;
+}
+
+QLineEdit {
+    color: black;
+    border-width: 1px;
+    border-style: solid;
+    border-color: transparent transparent rgb(97, 95, 255) transparent;
+}
+
+QComboBox {
+    color: black;
+    border-width: 1px;
+    border-style: solid;
+    border-color: transparent transparent rgb(97, 95, 255) transparent;
+}
+
+QTextEdit {
+    color: black;
+    border-width: 1px;
+    border-style: solid;
+    border-color: transparent transparent rgb(97, 95, 255) transparent;
+}
+
+
+QPushButton {
+    background: qlineargradient(
+        x1: 0, y1: 0, x2: 1, y2: 0,
+        stop: 0 #5f2c82,
+        stop: 1 #49a09d
+    );
+    color: white;
+    border: none;
+    border-radius: 15px;
+    padding: 6px 14px;
+    font-weight: bold;
+}
+
+QPushButton:hover {
+    background: qlineargradient(
+        x1: 0, y1: 0, x2: 1, y2: 0,
+        stop: 0 #6a35a0,
+        stop: 1 #5bbab4
+    );
+}
+
+QPushButton:pressed {
+    background: qlineargradient(
+        x1: 0, y1: 0, x2: 1, y2: 0,
+        stop: 0 #4a2266,
+        stop: 1 #3f8f8b
+    );
+    padding-top: 8px;
+    padding-left: 16px;
+}
+
+QFrame {
+    background-color: white;
+}
+
+QGroupBox {
+    border: 1px solid rgb(229, 231, 235);
+    border-radius: 5px;
+}
+
+QStatusBar {
+    background-color: rgb(240, 240, 240);
+    color: black;
+    font-weight: bold;
+}

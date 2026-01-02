@@ -1,0 +1,71 @@
+# --- Python ---
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+
+# Packaging / build artifacts
+build/
+dist/
+*.egg-info/
+.eggs/
+pip-wheel-metadata/
+wheels/
+
+# PyInstaller
+*.spec
+# (descomenta si generas builds dentro de una carpeta específica)
+# release/
+# output/
+
+# Test / tooling caches
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+.tox/
+.nox/
+.mypy_cache/
+.pyre/
+.ruff_cache/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Logs / temp
+*.log
+*.tmp
+*.bak
+*.swp
+
+# --- IDEs / Editors ---
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# --- OS files ---
+.DS_Store
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# --- Qt / PyQt ---
+# Archivos generados por Qt (si los tienes)
+*.qrc
+*.qmlc
+*.jsc
+
+# --- App data / databases (ajusta según tu proyecto) ---
+*.sqlite3
+*.db
+*.db-journal
+
+# --- Environment / secrets ---
+.env
+.env.*
