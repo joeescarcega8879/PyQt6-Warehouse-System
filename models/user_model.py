@@ -118,11 +118,15 @@ class UserModel:
                     "is_active": is_active,
                 },
             )
-            return result['success']
+           
+            if result.get("rows_affected", 0) != 1:
+                return False, "User not found."
+            return True
+        
         except DatabaseError as e:
             logger.error(f"Error updating user {user_id}: {e}")
-            return False
-    
+            return False, str(e)
+
     @staticmethod
     def get_all_users(include_inactive: bool = True):
         """

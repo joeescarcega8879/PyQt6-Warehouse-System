@@ -1,3 +1,4 @@
+import json
 from PyQt6.QtSql import QSqlQuery, QSqlDatabase, QSqlError
 import logging
 
@@ -145,6 +146,22 @@ class QueryHelper:
         logger.error(error_msg)
         return error_msg
     
+    @classmethod
+    def _to_json_(cls, data: dict) -> str:
+        """
+        Convert a dictionary to a JSON string.
+        Args:
+            data (dict): The data to convert.
+        Returns:
+            str: The JSON string representation of the data.
+        """
+        
+        try:
+            return json.dumps(data)
+        except (TypeError, ValueError) as e:
+            logger.error(f"Error converting to JSON: {e}")
+            return "{}"
+
     @classmethod
     def begin_transaction(cls) -> bool:
         """

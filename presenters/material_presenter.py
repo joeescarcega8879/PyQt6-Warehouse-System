@@ -1,6 +1,12 @@
 import logging
+from re import A
 from common.enums import StatusType
 from models.material_model import MaterialModel
+
+from domain.permissions import Permission
+from domain.permissions_service import PermissionService
+from domain.audit_service import AuditService
+from domain.audit_definitions import AuditDefinition
 
 class MaterialPresenter:
     def __init__(self, view, status_handler, current_user):
@@ -38,6 +44,17 @@ class MaterialPresenter:
                 if self._current_material_id is None:
                     self._emit_error("Please select a valid material to edit")
                     return
+                
+                if not PermissionService.has_permission(self.current_user, Permission.MATERIALS_EDIT):
+                    self._emit_error("You do not have permission to edit materials")
+                    AuditService.log_action(
+                        user_id=self.current_user.user_id,
+                        action=AuditDefinition.MATERIALS_EDITED,
+                        success=False,
+                        entity="Material",
+                        meta={"reason": "Insufficient permissions"}
+                    )
+                    return
 
                 success = MaterialModel.update_material(
                     material_id=self._current_material_id,
@@ -46,6 +63,18 @@ class MaterialPresenter:
                     unit=unit,
                 )
             else:
+
+                if not PermissionService.has_permission(self.current_user, Permission.MATERIALS_CREATE):
+                    self._emit_error("You do not have permission to add materials")
+                    AuditService.log_action(
+                        user_id=self.current_user.user_id,
+                        action=AuditDefinition.MATERIALS_CREATED,
+                        success=False,
+                        entity="Material",
+                        meta={"reason": "Insufficient permissions"}
+                    )
+                    return
+                
                 success = MaterialModel.add_material(
                     name=name,
                     description=description,
@@ -54,6 +83,16 @@ class MaterialPresenter:
 
             if success:
                 self._emit_success("Material saved successfully")
+
+                AuditService.log_action(
+                    user_id=self.current_user.user_id,
+                    action=AuditDefinition.MATERIALS_CREATED,
+                    success=True,
+                    entity="Material",
+                    entity_id=self._current_material_id,
+                    meta={"name": name, "unit": unit, "description": description}
+                )
+
                 self._post_save_cleanup()
             else:
                 self._emit_error("Error saving material")
@@ -77,11 +116,32 @@ class MaterialPresenter:
         if material_id is None:
             self._emit_error("Please select a valid material to delete")
             return
+        
+        if not PermissionService.has_permission(self.current_user, Permission.DELETE_MATERIAL):
+            self._emit_error("You do not have permission to delete materials")
+            AuditService.log_action(
+                user_id=self.current_user.id,
+                action=Permission.DELETE_MATERIAL,
+                success=False,
+                entity="Material",
+                meta={"reason": "Insufficient permissions"}
+            )
+            return
 
         try:
             success = MaterialModel.delete_material(material_id)
             if success:
                 self._emit_success("Material deleted successfully")
+
+                AuditService.log_action(
+                    user_id=self.current_user.user_id,
+                    action=AuditDefinition.MATERIALS_DELETED,
+                    success=True,
+                    entity="Material",
+                    entity_id=material_id,
+                    meta={"Deleted by": self.current_user.username}
+                )
+
                 self._post_save_cleanup()
             else:
                 self._emit_error("Error deleting material")

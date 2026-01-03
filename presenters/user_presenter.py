@@ -4,6 +4,8 @@ from models.user_model import UserModel
 
 from domain.permissions import Permission
 from domain.permissions_service import PermissionService
+from domain.audit_service import AuditService
+from domain.audit_definitions import AuditDefinition
 
 class UserPresenter:
     def __init__(self, view,main_app, status_handler, current_user):
@@ -90,6 +92,13 @@ class UserPresenter:
         
         if not PermissionService.has_permission(self.current_user, Permission.USERS_CHANGE_PASSWORD):
             self._emit_error("You do not have permission to change user passwords")
+            AuditService.log_action(
+                user_id=self.current_user.user_id,
+                action=AuditDefinition.USERS_PASSWORD_CHANGED,
+                success=False,
+                entity="User",
+                meta={"reason": "Insufficient permissions"}
+            )
             return
 
         self.main_app.open_change_password_form(user_id)
