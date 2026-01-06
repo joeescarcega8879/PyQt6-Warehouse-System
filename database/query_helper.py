@@ -1,8 +1,6 @@
 import json
+from config.logger_config import logger
 from PyQt6.QtSql import QSqlQuery, QSqlDatabase, QSqlError
-import logging
-
-logger = logging.getLogger(__name__)
 
 class DatabaseError(Exception):
     """Custom exception for database errors."""

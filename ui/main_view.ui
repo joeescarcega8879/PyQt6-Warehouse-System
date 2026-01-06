@@ -98,81 +98,82 @@
          <property name="frameShadow">
           <enum>QFrame::Plain</enum>
          </property>
-         <widget class="QPushButton" name="btn_materials">
-          <property name="geometry">
-           <rect>
-            <x>10</x>
-            <y>190</y>
-            <width>221</width>
-            <height>40</height>
-           </rect>
-          </property>
-          <property name="text">
-           <string>Materials</string>
-          </property>
-          <property name="icon">
-           <iconset>
-            <normaloff>../assets/Images/IMG-Materials.png</normaloff>../assets/Images/IMG-Materials.png</iconset>
-          </property>
-          <property name="iconSize">
-           <size>
-            <width>32</width>
-            <height>32</height>
-           </size>
-          </property>
-         </widget>
-         <widget class="QPushButton" name="btn_users">
-          <property name="geometry">
-           <rect>
-            <x>10</x>
-            <y>240</y>
-            <width>221</width>
-            <height>40</height>
-           </rect>
-          </property>
-          <property name="text">
-           <string>Users</string>
-          </property>
-          <property name="icon">
-           <iconset>
-            <normaloff>../assets/Images/IMG-SettingsUser.png</normaloff>../assets/Images/IMG-SettingsUser.png</iconset>
-          </property>
-          <property name="iconSize">
-           <size>
-            <width>32</width>
-            <height>32</height>
-           </size>
-          </property>
-         </widget>
-         <widget class="QPushButton" name="btn_requests">
-          <property name="geometry">
-           <rect>
-            <x>10</x>
-            <y>140</y>
-            <width>221</width>
-            <height>40</height>
-           </rect>
-          </property>
-          <property name="sizePolicy">
-           <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
-            <horstretch>0</horstretch>
-            <verstretch>0</verstretch>
-           </sizepolicy>
-          </property>
-          <property name="text">
-           <string>Requests</string>
-          </property>
-          <property name="icon">
-           <iconset>
-            <normaloff>../assets/Images/IMG-Requests.png</normaloff>../assets/Images/IMG-Requests.png</iconset>
-          </property>
-          <property name="iconSize">
-           <size>
-            <width>32</width>
-            <height>32</height>
-           </size>
-          </property>
-         </widget>
+         <layout class="QVBoxLayout" name="verticalLayout">
+          <item>
+           <widget class="QPushButton" name="btn_requests">
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
+              <horstretch>0</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
+            <property name="text">
+             <string>Requests</string>
+            </property>
+            <property name="icon">
+             <iconset>
+              <normaloff>../assets/Images/IMG-Requests.png</normaloff>../assets/Images/IMG-Requests.png</iconset>
+            </property>
+            <property name="iconSize">
+             <size>
+              <width>32</width>
+              <height>32</height>
+             </size>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QPushButton" name="btn_materials">
+            <property name="text">
+             <string>Materials</string>
+            </property>
+            <property name="icon">
+             <iconset>
+              <normaloff>../assets/Images/IMG-Materials.png</normaloff>../assets/Images/IMG-Materials.png</iconset>
+            </property>
+            <property name="iconSize">
+             <size>
+              <width>32</width>
+              <height>32</height>
+             </size>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QPushButton" name="btn_lines">
+            <property name="text">
+             <string>Lines</string>
+            </property>
+            <property name="icon">
+             <iconset>
+              <normaloff>../assets/Images/IMG-Production-Line.png</normaloff>../assets/Images/IMG-Production-Line.png</iconset>
+            </property>
+            <property name="iconSize">
+             <size>
+              <width>32</width>
+              <height>32</height>
+             </size>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QPushButton" name="btn_users">
+            <property name="text">
+             <string>Users</string>
+            </property>
+            <property name="icon">
+             <iconset>
+              <normaloff>../assets/Images/IMG-SettingsUser.png</normaloff>../assets/Images/IMG-SettingsUser.png</iconset>
+            </property>
+            <property name="iconSize">
+             <size>
+              <width>32</width>
+              <height>32</height>
+             </size>
+            </property>
+           </widget>
+          </item>
+         </layout>
         </widget>
        </item>
        <item row="0" column="1">

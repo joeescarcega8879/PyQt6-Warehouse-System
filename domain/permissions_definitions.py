@@ -12,3 +12,9 @@ class Permission:
     USERS_CREATE = "users.create"
     USERS_EDIT = "users.edit"
     USERS_CHANGE_PASSWORD = "users.change_password"
+
+    PRODUCTION_LINES_CREATE = "production.lines.create"
+    PRODUCTION_LINES_EDIT = "production.lines.edit"
+    PRODUCTION_LINES_VIEW = "production.lines.view"
+
+    

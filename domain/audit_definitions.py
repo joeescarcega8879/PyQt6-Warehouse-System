@@ -13,3 +13,7 @@ class AuditDefinition(StrEnum):
     USERS_CREATED = "users.created"
     USERS_EDITED = "users.edited"
     USERS_PASSWORD_CHANGED = "users.password.changed"
+
+    PRODUCTION_LINES_CREATED = "production.lines.created"
+    PRODUCTION_LINES_EDITED = "production.lines.edited"
+    

@@ -13,6 +13,7 @@ class MainView(QMainWindow):
 
     # Signals
     form_material_signal = pyqtSignal()
+    form_line_signal = pyqtSignal()
     form_user_signal = pyqtSignal()
 
     def __init__(self):
@@ -34,6 +35,8 @@ class MainView(QMainWindow):
         self.btn_materials.clicked.connect(self.form_material_signal.emit)
 
         self.btn_users.clicked.connect(self.form_user_signal.emit)
+
+        self.btn_lines.clicked.connect(self.form_line_signal.emit)
 
         self.show()
 

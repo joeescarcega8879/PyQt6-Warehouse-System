@@ -1,5 +1,4 @@
 import logging
-from re import A
 from common.enums import StatusType
 from models.material_model import MaterialModel
 
@@ -82,17 +81,17 @@ class MaterialPresenter:
                 )
 
             if success:
-                self._emit_success("Material saved successfully")
 
                 AuditService.log_action(
                     user_id=self.current_user.user_id,
                     action=AuditDefinition.MATERIALS_CREATED,
                     success=True,
                     entity="Material",
-                    entity_id=self._current_material_id,
+                    entity_id=self._current_material_id if self._current_material_id is not None else None,
                     meta={"name": name, "unit": unit, "description": description}
                 )
 
+                self._emit_success("Material saved successfully")
                 self._post_save_cleanup()
             else:
                 self._emit_error("Error saving material")

@@ -9,3 +9,4 @@ class MainPresenter:
     def _connect_signals(self):
         self.view.form_material_signal.connect(self.navigation.open_material_form)
         self.view.form_user_signal.connect(self.navigation.open_user_form)
+        self.view.form_line_signal.connect(self.navigation.open_line_form)

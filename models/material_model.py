@@ -1,4 +1,5 @@
 import logging
+import re
 from database.query_helper import DatabaseError, QueryHelper
 
 logger = logging.getLogger(__name__)
@@ -6,7 +7,7 @@ logger = logging.getLogger(__name__)
 class MaterialModel:
 
     @staticmethod
-    def add_material(name: str, description: str, unit: str) -> bool:
+    def add_material(name: str, description: str, unit: str) -> tuple[bool, str]:
         """
         Adds a new material to the database.
         Args:
@@ -14,7 +15,7 @@ class MaterialModel:
             description (str): A brief description of the material.
             unit (str): The unit of measurement for the material.
         Returns:
-            bool: True if the material was added successfully, False otherwise.
+            tuple[bool, str]: A tuple containing a boolean indicating success and an error message if any.
         """
         try:
             result = QueryHelper.execute(
@@ -28,13 +29,22 @@ class MaterialModel:
                     "unit": unit
                 },
             )
-            return result['success']
+
+            if result.get("rows_affected", 0) != 1:
+                return False, "Failed to add material."
+    
+            return True, None
+        
         except DatabaseError as e:
             logger.error(f"Error adding material: {e}")
             return False
+        
+        except Exception as e:
+            logger.error(f"Unexpected error adding material: {e}")
+            return False, str(e)
     
     @staticmethod
-    def update_material(material_id: int, name: str, description: str, unit: str) -> bool:
+    def update_material(material_id: int, name: str, description: str, unit: str) -> tuple[bool, str]:
         """
         Updates an existing material in the database.
         Args:
@@ -43,7 +53,7 @@ class MaterialModel:
             description (str): The new description of the material.
             unit (str): The new unit of measurement for the material.
         Returns:
-            bool: True if the material was updated successfully, False otherwise.
+            tuple[bool, str]: A tuple containing a boolean indicating success and an error message if any.
         """
         try:
             result = QueryHelper.execute(
@@ -61,19 +71,28 @@ class MaterialModel:
                     "unit": unit
                 },
             )
-            return result['success']
+
+            if result.get("rows_affected", 0) != 1:
+                return False, "Material not found."
+        
+            return True, None
+        
         except DatabaseError as e:
             logger.error(f"Error updating material {material_id}: {e}")
-            return False
-    
+            return False, str(e)
+        
+        except Exception as e:
+            logger.error(f"Unexpected error updating material {material_id}: {e}")
+            return False, str(e)
+        
     @staticmethod
-    def delete_material(material_id: int) -> bool:
+    def delete_material(material_id: int) -> tuple[bool, str]:
         """
         Deletes a material from the database.
         Args:
             material_id (int): The ID of the material to delete.
         Returns:
-            bool: True if the material was deleted successfully, False otherwise.
+            tuple[bool, str]: A tuple containing a boolean indicating success and an error message if any.
         """
         try:
             result = QueryHelper.execute(
@@ -85,10 +104,18 @@ class MaterialModel:
                     "material_id": material_id
                 },
             )
-            return result['success']
+        
+            if result.get("rows_affected", 0) != 1:
+                return False, "Material not found."
+            return True, None
+        
         except DatabaseError as e:
             logger.error(f"Error deleting material {material_id}: {e}")
-            return False
+            return False, str(e)
+        
+        except Exception as e:
+            logger.error(f"Unexpected error deleting material {material_id}: {e}")
+            return False, str(e)
     
     @staticmethod
     def get_all_materials() -> list[tuple]:
@@ -115,8 +142,13 @@ class MaterialModel:
                 )
                 for row in rows
             ]
+        
         except DatabaseError as e:
             logger.error(f"Error fetching materials: {e}")
+            return []
+        
+        except Exception as e:
+            logger.error(f"Unexpected error fetching materials: {e}")
             return []
 
     @staticmethod
@@ -188,5 +220,9 @@ class MaterialModel:
 
         except DatabaseError as e:
             logger.exception(f"Error searching material by name {material_name}: {e}")
+            return []
+        
+        except Exception as e:
+            logger.exception(f"Unexpected error searching material by name {material_name}: {e}")
             return []
 
