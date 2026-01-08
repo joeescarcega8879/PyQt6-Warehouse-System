@@ -162,6 +162,87 @@ class UserModel:
             return [], str(e)
 
     @staticmethod
+    def get_user_by_id(user_id: int) -> list[tuple] | None:
+        """
+        Retrieves a user's information by their ID.
+        Args:
+            user_id (int): The ID of the user to retrieve.
+        Returns:
+            list[tuple] | None: A tuple representing the user's information, or None if not
+        """
+
+        try:
+            users = QueryHelper.fetch_all(
+                """
+                SELECT user_id, username, full_name, user_role, is_active
+                FROM users
+                WHERE user_id = :user_id
+                """,
+                {"user_id": user_id},
+            )
+
+            if not users:
+                return None
+            
+            return [
+                (
+                    user["user_id"],
+                    user["username"],
+                    user["full_name"],
+                    user["user_role"],
+                    user["is_active"],
+                )
+                for user in users
+            ]
+        except DatabaseError as e:
+            logger.error(f"Error retrieving user {user_id}: {e}")
+            return None, str(e)
+        except Exception as e:
+            logger.exception(f"Unexpected error retrieving user {user_id}: {e}")
+            return None, str(e)
+        
+    @staticmethod
+    def get_user_by_name(username: str) -> list[tuple] | None:
+        """
+        Retrieves a user's information by their username.
+        Args:
+            username (str): The username of the user to retrieve.
+        Returns:
+            list[tuple] | None: A tuple representing the user's information, or None if not found.
+        """
+
+        try:
+            users = QueryHelper.fetch_all(
+                """
+                SELECT user_id, username, full_name, user_role, is_active
+                FROM users
+                WHERE username ILIKE :username
+                """,
+                {"username": f"%{username}%"},
+            )
+
+            if not users:
+                return None
+            
+            return [
+                (
+                    user["user_id"],
+                    user["username"],
+                    user["full_name"],
+                    user["user_role"],
+                    user["is_active"]
+                )
+                for user in users
+            ]
+        
+        except DatabaseError as e:
+            logger.error(f"Error retrieving user {username}: {e}")
+            return None, str(e)
+        except Exception as e:
+            logger.exception(f"Unexpected error retrieving user {username}: {e}")
+            return None, str(e)
+
+    @staticmethod
     def change_user_password(user_id: int, new_password: str):
         """
         Changes the password for a given user.

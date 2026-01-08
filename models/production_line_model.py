@@ -120,7 +120,7 @@ class ProductionLineModel:
             return []
         
     @staticmethod
-    def search_by_id(line_id: int) -> tuple | None:
+    def search_by_id(line_id: int) -> list[tuple] | None:
         """
         Searches for a production line by its ID.
         Args:
@@ -130,7 +130,7 @@ class ProductionLineModel:
         """
 
         try:
-            row = QueryHelper.fetch_one(
+            rows = QueryHelper.fetch_all(
                 """
                 SELECT line_id, line_name, description, is_active
                 FROM production_lines
@@ -139,15 +139,18 @@ class ProductionLineModel:
                 {"id": line_id}
             )
             
-            if row is None:
+            if rows is None:
                 return None
 
-            return (
-                row["line_id"],
-                row["line_name"],
-                row["description"],
-                row["is_active"]
-            )
+            return [
+                (
+                    row["line_id"],
+                    row["line_name"],
+                    row["description"],
+                    row["is_active"]
+                )
+                for row in rows
+            ]
             
         
         except DatabaseError as e:
@@ -173,7 +176,7 @@ class ProductionLineModel:
                 """
                 SELECT line_id, line_name, description, is_active
                 FROM production_lines
-                WHERE line_name LIKE :name
+                WHERE line_name ILIKE :name
                 ORDER BY line_id
                 """,
                 {"name": f"%{line_name}%"}

@@ -160,7 +160,8 @@ class MaterialPresenter:
         if query.isdigit():
             try:
                 materials = MaterialModel.search_by_id(int(query))
-                self.view.load_materials(materials)
+                print(materials)
+                # self.view.load_materials(materials)
             except Exception:
                 logging.exception("Error searching materials by id")
                 self._emit_error("Unexpected error during search")

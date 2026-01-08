@@ -1,4 +1,3 @@
-from os import name
 from config.logger_config import logger
 from common.enums import StatusType
 
@@ -24,9 +23,13 @@ class LinePresenter:
 
     def _connect_signals(self) -> None:
             self.view.save_requested.connect(self._handle_save)
+            self.view.edit_requested.connect(self._handle_edit)
+            self.view.search_text_changed.connect(self._on_search_text_changed)
 
     def _handle_save(self) -> None:
         data = self.view.get_line_form_data() or {}
+
+        print(data)
 
         error = self._validate(data)
         if error:
@@ -49,7 +52,7 @@ class LinePresenter:
                     AuditService.log_action(user_id=self.current_user.user_id,action=AuditDefinition.PRODUCTION_LINES_EDITED,success=False,entity="ProductionLine",meta={"reason": "Insufficient permissions"})
                     return
                 
-                success = ProductionLineModel.update_production_line(line_id=self._current_line_id,name=name,description=description,is_active=is_active)
+                success = ProductionLineModel.update_production_line(line_id=self._current_line_id,line_name=name,description=description,is_active=is_active)
 
             else:
                 if not PermissionService.has_permission(self.current_user, Permission.PRODUCTION_LINES_CREATE):
@@ -78,6 +81,41 @@ class LinePresenter:
             logger.error(f"Error saving production line: {e}")
             self._emit_error(f"Error saving production line: {str(e)}")
 
+    def _handle_edit(self)-> None:
+        data = self.view.get_selected_line_data()
+        if not data or data.get("id") is None:
+            self._emit_error("Please select a valid production line to edit")
+            return
+        
+        self._is_editing = True
+        self._current_line_id = data.get("id")
+        self.view.set_form_data(data)
+
+    def _on_search_text_changed(self, text: str) -> None:
+        query = (text or "").strip()
+
+        if not query:
+            self._load_lines_data()
+            return
+        
+        if query.isdigit():
+            try:
+                line_id = ProductionLineModel.search_by_id(int(query))
+                self.view.load_lines_data(line_id)
+            except Exception:
+                logger.error("Error searching production line by ID")
+                self._emit_error("Error searching production line by ID")
+
+        if len(query) < 3:
+            return
+        
+        try:
+            lines = ProductionLineModel.search_by_name(query)
+            self.view.load_lines_data(lines)
+        except Exception:
+            logger.error("Error searching production lines by name")
+            self._emit_error("Error searching production lines by name")
+
     def _post_save_cleanup(self)-> None:
         self._is_editing = False
         self._current_line_id = None
@@ -97,13 +135,12 @@ class LinePresenter:
 
     def _validate(self, data: dict) -> str | None:
         name = (data.get("name") or "").strip()
-        is_active = (data.get("is_active") or "")
-
+        is_active = data.get("is_active")
 
         if not name:
             return "Line name is required"
-        if not is_active:
-            return "Unit of measure is required"
+        if is_active is None:
+            return "Is active status of line is required"
 
         return None
 

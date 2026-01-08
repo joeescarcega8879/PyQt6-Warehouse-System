@@ -1,4 +1,5 @@
 import os
+from re import search
 from tkinter import NO
 from PyQt6 import uic
 from PyQt6.QtCore import pyqtSignal
@@ -12,6 +13,7 @@ class UserView(QWidget):
     save_requested = pyqtSignal()
     edit_requested = pyqtSignal()
     change_password_requested = pyqtSignal()
+    search_text_changed = pyqtSignal(str)
 
     def __init__(self):
         super(UserView, self).__init__()
@@ -33,6 +35,8 @@ class UserView(QWidget):
         self.btn_change_password.clicked.connect(self.change_password_requested.emit)
 
         self.btn_close.clicked.connect(self.close)
+
+        self.input_search.textChanged.connect(self.on_search_text_changed)
 
 
         self.initialize_user_role_combo_box()
@@ -90,6 +94,9 @@ class UserView(QWidget):
         self.label_user_name.setText(f"UserName: {user_info.get('username', '')}")
         self.label_user_role.setText(f"UserRole: {user_info.get('user_role', '')}")
 
+    def on_search_text_changed(self, text: str) -> None:
+        self.search_text_changed.emit(text)
+    
     def enable_create(self, enable: bool) -> None:
         self.btn_save.setEnabled(enable)
 

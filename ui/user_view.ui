@@ -49,7 +49,7 @@
        </widget>
       </item>
       <item row="0" column="1">
-       <widget class="QLineEdit" name="lineEdit_5">
+       <widget class="QLineEdit" name="input_search">
         <property name="font">
          <font>
           <family>Century Gothic</family>
@@ -395,7 +395,7 @@
   <tabstop>btn_save</tabstop>
   <tabstop>btn_update</tabstop>
   <tabstop>btn_change_password</tabstop>
-  <tabstop>lineEdit_5</tabstop>
+  <tabstop>input_search</tabstop>
   <tabstop>tableWidget</tabstop>
   <tabstop>btn_close</tabstop>
  </tabstops>
