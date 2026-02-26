@@ -42,8 +42,7 @@ class MaterialView(QWidget):
        
         self.init_combo_box_units()
 
-
-    def get_material_form_data(self) -> dict:
+    def get_material_form_data(self) -> dict | None:
         return {
             "name": self.input_material_name.text(),
             "description": self.input_description.toPlainText().strip(),
@@ -128,9 +127,4 @@ class MaterialView(QWidget):
 
         for display_text, value in units:
             self.cbo_unit.addItem(display_text, value)
-
-    def show_error(self, message: str) -> None:
-        QMessageBox.warning(self, "Error", message)
-
-    def show_success(self, message: str) -> None:
-        QMessageBox.information(self, "Success", message)
+            

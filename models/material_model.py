@@ -1,5 +1,4 @@
 import logging
-import re
 from database.query_helper import DatabaseError, QueryHelper
 
 logger = logging.getLogger(__name__)

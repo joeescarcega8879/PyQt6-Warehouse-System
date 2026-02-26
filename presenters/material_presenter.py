@@ -156,21 +156,21 @@ class MaterialPresenter:
             self._reload_materials()
             return
 
-        # Para ID permitimos cualquier longitud si son dígitos.
+        # If the query is a number, search by ID first
         if query.isdigit():
             try:
                 materials = MaterialModel.search_by_id(int(query))
-                print(materials)
-                # self.view.load_materials(materials)
+                self.view.load_materials(materials)
             except Exception:
                 logging.exception("Error searching materials by id")
                 self._emit_error("Unexpected error during search")
             return
 
-        # Para nombre, aplica umbral mínimo (como ya hacías).
+
         if len(query) < 3:
             return
 
+        # For longer queries, search by name
         try:
             materials = MaterialModel.search_by_name(query)
             self.view.load_materials(materials)

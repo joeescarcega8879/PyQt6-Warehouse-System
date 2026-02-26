@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1520</width>
-    <height>860</height>
+    <width>1200</width>
+    <height>610</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -26,10 +26,16 @@
     </property>
     <item row="0" column="0">
      <widget class="QLabel" name="label">
+      <property name="sizePolicy">
+       <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+        <horstretch>0</horstretch>
+        <verstretch>0</verstretch>
+       </sizepolicy>
+      </property>
       <property name="minimumSize">
        <size>
         <width>0</width>
-        <height>110</height>
+        <height>55</height>
        </size>
       </property>
       <property name="maximumSize">
@@ -42,7 +48,6 @@
        <font>
         <family>Arial</family>
         <pointsize>20</pointsize>
-        <weight>75</weight>
         <italic>false</italic>
         <bold>true</bold>
        </font>
@@ -62,7 +67,7 @@
        <string>Inventory and Production Management System</string>
       </property>
       <property name="alignment">
-       <set>Qt::AlignCenter</set>
+       <set>Qt::AlignmentFlag::AlignCenter</set>
       </property>
       <property name="wordWrap">
        <bool>true</bool>
@@ -93,10 +98,10 @@
           <string notr="true"/>
          </property>
          <property name="frameShape">
-          <enum>QFrame::StyledPanel</enum>
+          <enum>QFrame::Shape::StyledPanel</enum>
          </property>
          <property name="frameShadow">
-          <enum>QFrame::Plain</enum>
+          <enum>QFrame::Shadow::Plain</enum>
          </property>
          <layout class="QVBoxLayout" name="verticalLayout">
           <item>
@@ -107,12 +112,52 @@
               <verstretch>0</verstretch>
              </sizepolicy>
             </property>
+            <property name="minimumSize">
+             <size>
+              <width>0</width>
+              <height>38</height>
+             </size>
+            </property>
             <property name="text">
              <string>Requests</string>
             </property>
-            <property name="icon">
-             <iconset>
-              <normaloff>../assets/Images/IMG-Requests.png</normaloff>../assets/Images/IMG-Requests.png</iconset>
+            <property name="iconSize">
+             <size>
+              <width>32</width>
+              <height>32</height>
+             </size>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QPushButton" name="btn_receipts">
+            <property name="minimumSize">
+             <size>
+              <width>0</width>
+              <height>38</height>
+             </size>
+            </property>
+            <property name="text">
+             <string>Receipts</string>
+            </property>
+            <property name="iconSize">
+             <size>
+              <width>32</width>
+              <height>32</height>
+             </size>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QPushButton" name="btn_suppliers">
+            <property name="minimumSize">
+             <size>
+              <width>0</width>
+              <height>38</height>
+             </size>
+            </property>
+            <property name="text">
+             <string>Suppliers</string>
             </property>
             <property name="iconSize">
              <size>
@@ -124,12 +169,14 @@
           </item>
           <item>
            <widget class="QPushButton" name="btn_materials">
+            <property name="minimumSize">
+             <size>
+              <width>0</width>
+              <height>38</height>
+             </size>
+            </property>
             <property name="text">
              <string>Materials</string>
-            </property>
-            <property name="icon">
-             <iconset>
-              <normaloff>../assets/Images/IMG-Materials.png</normaloff>../assets/Images/IMG-Materials.png</iconset>
             </property>
             <property name="iconSize">
              <size>
@@ -141,12 +188,14 @@
           </item>
           <item>
            <widget class="QPushButton" name="btn_lines">
+            <property name="minimumSize">
+             <size>
+              <width>0</width>
+              <height>38</height>
+             </size>
+            </property>
             <property name="text">
              <string>Lines</string>
-            </property>
-            <property name="icon">
-             <iconset>
-              <normaloff>../assets/Images/IMG-Production-Line.png</normaloff>../assets/Images/IMG-Production-Line.png</iconset>
             </property>
             <property name="iconSize">
              <size>
@@ -158,12 +207,14 @@
           </item>
           <item>
            <widget class="QPushButton" name="btn_users">
+            <property name="minimumSize">
+             <size>
+              <width>0</width>
+              <height>38</height>
+             </size>
+            </property>
             <property name="text">
              <string>Users</string>
-            </property>
-            <property name="icon">
-             <iconset>
-              <normaloff>../assets/Images/IMG-SettingsUser.png</normaloff>../assets/Images/IMG-SettingsUser.png</iconset>
             </property>
             <property name="iconSize">
              <size>
@@ -177,7 +228,17 @@
         </widget>
        </item>
        <item row="0" column="1">
-        <widget class="QMdiArea" name="mdi_container"/>
+        <widget class="QMdiArea" name="mdi_container">
+         <property name="background">
+          <brush brushstyle="SolidPattern">
+           <color alpha="255">
+            <red>255</red>
+            <green>255</green>
+            <blue>255</blue>
+           </color>
+          </brush>
+         </property>
+        </widget>
        </item>
       </layout>
      </widget>
@@ -189,8 +250,8 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>1520</width>
-     <height>21</height>
+     <width>1200</width>
+     <height>23</height>
     </rect>
    </property>
   </widget>

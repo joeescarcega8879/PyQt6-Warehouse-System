@@ -18,7 +18,11 @@ PERMISSIONS = {
     Permission.PRODUCTION_LINES_EDIT: {UserRole.ADMIN, UserRole.SUPERVISOR},
     Permission.PRODUCTION_LINES_VIEW: {UserRole.ADMIN, UserRole.SUPERVISOR, UserRole.LEADER, UserRole.VIEWER},
 
+    Permission.RECEIPTS_CREATE: {UserRole.ADMIN, UserRole.SUPERVISOR, UserRole.LEADER},
+    Permission.RECEIPTS_EDIT: {UserRole.ADMIN, UserRole.SUPERVISOR},
 
+    Permission.SUPPLIER_CREATE: {UserRole.ADMIN, UserRole.SUPERVISOR},
+    Permission.SUPPLIER_EDIT: {UserRole.ADMIN, UserRole.SUPERVISOR},
 
 }
 

@@ -6,6 +6,8 @@ class Permission:
     MATERIALS_DELETE = "materials.delete"
 
     PRODUCTION_REQUESTS_CREATE = "production.requests.create"
+    PRODUCTION_REQUESTS_EDIT = "production.requests.edit"
+    PRODUCTION_REQUESTS_SUBMIT = "production.requests.submit"
     PRODUCTION_REQUESTS_APPROVE = "production.requests.approve"
     PRODUCTION_REQUESTS_VIEW = "production.requests.view"
 
@@ -17,4 +19,8 @@ class Permission:
     PRODUCTION_LINES_EDIT = "production.lines.edit"
     PRODUCTION_LINES_VIEW = "production.lines.view"
 
-    
+    RECEIPTS_CREATE = "receipts.create"
+    RECEIPTS_EDIT = "receipts.edit"
+
+    SUPPLIER_CREATE = "supplier.create"
+    SUPPLIER_EDIT = "supplier.edit"

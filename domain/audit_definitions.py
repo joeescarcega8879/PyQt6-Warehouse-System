@@ -16,4 +16,11 @@ class AuditDefinition(StrEnum):
 
     PRODUCTION_LINES_CREATED = "production.lines.created"
     PRODUCTION_LINES_EDITED = "production.lines.edited"
+
+    RECEIPTS_CREATED = "receipts.created"
+    RECEIPTS_EDITED = "receipts.edited"
+    RECEIPTS_DELETED = "receipts.deleted"
+
+    SUPPLIER_CREATED = "supplier.created"
+    SUPPLIER_EDITED = "supplier.edited"
     

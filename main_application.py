@@ -8,6 +8,10 @@ from views.user_view import UserView
 from views.material_view import MaterialView
 from views.line_view import LineView
 from views.change_password_view import ChangePasswordView
+from views.receipt_view import ReceiptView
+from views.supplier_view import SupplierView
+from views.generic_view import GenericView
+
 
 from common.style_manager import StyleManager
 from common.status_bar_controller import StatusBarController
@@ -18,6 +22,9 @@ from presenters.material_presenter import MaterialPresenter
 from presenters.user_presenter import UserPresenter
 from presenters.change_password_presenter import ChangePasswordPresenter
 from presenters.production_line_presenter import LinePresenter
+from presenters.supplier_receipt_presenter import SupplierReceiptPresenter
+from presenters.supplier_presenter import SupplierPresenter
+from presenters.generic_presenter import GenericPresenter
 
 class MainApplication:
 
@@ -28,18 +35,25 @@ class MainApplication:
 
     def _init_login(self):
         self.login_view = LoginView()
-        self.login_presenter = LoginPresenter(self.login_view, on_login_success=self.on_login_success)
+        self.login_presenter = LoginPresenter(self.login_view, on_login_success=self._initialize_main_view)
         self.login_view.show()
 
-    def on_login_success(self, user) -> None:
+    def _initialize_main_view(self, user) -> None:
         self.current_user = user
 
         self.main_view = MainView()
         self.status_bar_controller = StatusBarController(self.main_view.statusBar())
-        self.main_view_presenter = MainPresenter(self.main_view, navigation=self, current_user=self.current_user)
+        self.main_presenter = MainPresenter(self.main_view, main_app=self, current_user=self.current_user)
 
-        self.main_view.show()
+        self.main_view.showMaximized()
         self.login_view.close()
+
+    def open_receipt_form(self) -> None:
+        self.receipt_view = ReceiptView()
+        self.receipt_presenter = SupplierReceiptPresenter(self.receipt_view, main_app=self ,current_user=self.current_user, status_handler=self.status_bar_controller.show_message)
+
+        sub_window = QMdiSubWindow()
+        self.main_view.open_child_form(self.receipt_view, sub_window)
 
     def open_material_form(self) -> None:
         self.material_view = MaterialView()
@@ -66,6 +80,19 @@ class MainApplication:
 
         change_password_view.exec()
 
+    def open_generic_form(self, on_material_selected = None) -> None:
+        self.generic_view = GenericView()
+        
+        self.generic_presenter = GenericPresenter(
+            view=self.generic_view, 
+            status_handler=self.status_bar_controller.show_message
+        )
+
+        if on_material_selected:
+            self.generic_view.material_selected.connect(on_material_selected)
+
+        self.generic_view.exec()
+
     def open_line_form(self) -> None:
         self.line_view = LineView()
  
@@ -73,9 +100,17 @@ class MainApplication:
 
         sub_window = QMdiSubWindow()
         self.main_view.open_child_form(self.line_view, sub_window)
+        
+    def open_supplier_form(self) -> None:
+        self.supplier_view = SupplierView()
+ 
+        self.supplier_presenter = SupplierPresenter(self.supplier_view, main_app=self, current_user=self.current_user, status_handler=self.status_bar_controller.show_message)
+
+        sub_window = QMdiSubWindow()
+        self.main_view.open_child_form(self.supplier_view, sub_window)
 
 
-def init_app():
+def main():
     app = QApplication(sys.argv)
 
     StyleManager.load_global_styles()
@@ -88,4 +123,4 @@ def init_app():
     sys.exit(app.exec())
 
 if __name__ == "__main__":
-    init_app()
+    main()

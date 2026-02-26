@@ -1,6 +1,5 @@
 import os
 import sys
-from tkinter.ttk import Style
 from PyQt6 import uic
 from PyQt6 import QtCore
 from PyQt6.QtCore import pyqtSignal
@@ -15,7 +14,9 @@ class MainView(QMainWindow):
     form_material_signal = pyqtSignal()
     form_line_signal = pyqtSignal()
     form_user_signal = pyqtSignal()
-
+    form_receipt_signal = pyqtSignal()
+    form_supplier_signal = pyqtSignal()
+    
     def __init__(self):
         super(MainView, self).__init__()
 
@@ -37,6 +38,10 @@ class MainView(QMainWindow):
         self.btn_users.clicked.connect(self.form_user_signal.emit)
 
         self.btn_lines.clicked.connect(self.form_line_signal.emit)
+
+        self.btn_receipts.clicked.connect(self.form_receipt_signal.emit)
+        
+        self.btn_suppliers.clicked.connect(self.form_supplier_signal.emit)
 
         self.show()
 

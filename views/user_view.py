@@ -1,6 +1,4 @@
 import os
-from re import search
-from tkinter import NO
 from PyQt6 import uic
 from PyQt6.QtCore import pyqtSignal
 from PyQt6.QtWidgets import QWidget
