@@ -1,7 +1,5 @@
 from config.logger_config import logger
-
 from common.enums import StatusType
-
 from models.supplier_model import SupplierModel
 
 from domain.audit_service import AuditService
