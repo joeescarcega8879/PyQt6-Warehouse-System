@@ -30,8 +30,6 @@ class SupplierReceiptPresenter:
    
     def _handle_save(self) -> None: 
         data = self.view.get_receipt_form_data() or {}
-
-        print("Receipt form data:", data)  # Debugging line
     
     def _load_user_information(self) -> None:
         user_info = {

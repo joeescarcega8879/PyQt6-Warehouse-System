@@ -29,8 +29,6 @@ class LinePresenter:
     def _handle_save(self) -> None:
         data = self.view.get_line_form_data() or {}
 
-        print(data)
-
         error = self._validate(data)
         if error:
             self._emit_error(error)
@@ -52,30 +50,56 @@ class LinePresenter:
                     AuditService.log_action(user_id=self.current_user.user_id,action=AuditDefinition.PRODUCTION_LINES_EDITED,success=False,entity="ProductionLine",meta={"reason": "Insufficient permissions"})
                     return
                 
-                success = ProductionLineModel.update_production_line(line_id=self._current_line_id,line_name=name,description=description,is_active=is_active)
+                success = ProductionLineModel.update_production_line(
+                    line_id=self._current_line_id,
+                    line_name=name,
+                    description=description,
+                    is_active=is_active
+                )
+                
+                if success:
+                    AuditService.log_action(
+                        user_id=self.current_user.user_id,
+                        action=AuditDefinition.PRODUCTION_LINES_EDITED,
+                        success=True,
+                        entity="ProductionLine",
+                        entity_id=self._current_line_id,
+                        meta={"name": name, "is_active": is_active}
+                    )
+                    
+                    self._emit_success("Production line updated successfully")
+                    self._post_save_cleanup()
+                else:
+                    self._emit_error("Failed to update production line")
 
             else:
                 if not PermissionService.has_permission(self.current_user, Permission.PRODUCTION_LINES_CREATE):
                     self._emit_error("You do not have permission to create production lines")
 
-                    AuditService.log_action(user_id=self.current_user.user_id,action=AuditDefinition.PRODUCTION_LINES_CREATED,success=True,entity="ProductionLine")
+                    AuditService.log_action(
+                        user_id=self.current_user.user_id,
+                        action=AuditDefinition.PRODUCTION_LINES_CREATED,
+                        success=False,
+                        entity="ProductionLine",
+                        meta={"reason": "Insufficient permissions"}
+                    )
                     return
+                    
                 success = ProductionLineModel.add_production_line(name=name, description=description, is_active=is_active)
 
-            if success:
-                AuditService.log_action(
-                    user_id=self.current_user.user_id, 
-                    action=AuditDefinition.PRODUCTION_LINES_CREATED, 
-                    success=True, 
-                    entity="ProductionLine", 
-                    entity_id=self._current_line_id if self._current_line_id is not None else None
-                )
+                if success:
+                    AuditService.log_action(
+                        user_id=self.current_user.user_id, 
+                        action=AuditDefinition.PRODUCTION_LINES_CREATED, 
+                        success=True, 
+                        entity="ProductionLine",
+                        meta={"name": name, "is_active": is_active}
+                    )
 
-                self._emit_success("Production line saved successfully")
-                self._post_save_cleanup()
-
-            else:
-                self._emit_error("Failed to save production line")
+                    self._emit_success("Production line created successfully")
+                    self._post_save_cleanup()
+                else:
+                    self._emit_error("Failed to create production line")
 
         except Exception as e:
             logger.error(f"Error saving production line: {e}")
@@ -119,7 +143,7 @@ class LinePresenter:
     def _post_save_cleanup(self)-> None:
         self._is_editing = False
         self._current_line_id = None
-        self.view.clean_form()
+        self.view.clear_form()
         self._load_lines_data()
 
     def _load_lines_data(self)-> None:

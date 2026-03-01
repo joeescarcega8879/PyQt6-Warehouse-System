@@ -10,6 +10,7 @@ class SupplierView(QWidget):
     # Signals to request actions
     save_requested = pyqtSignal()
     edit_requested = pyqtSignal()
+    cancel_requested = pyqtSignal()
     search_text_changed = pyqtSignal(str)
     
     def __init__(self):
@@ -28,9 +29,11 @@ class SupplierView(QWidget):
         
         self.btn_update.clicked.connect(self.edit_requested.emit)
         
-        # self.input_search.textChanged.connect(self._on_search_text_changed)
+        self.btn_cancel.clicked.connect(self.cancel_requested.emit)
         
         self.btn_close.clicked.connect(self.close)
+    
+        self.input_search.textChanged.connect(self.on_search_text_changed)    
         
         self.init_combo_box_is_active()
         
@@ -82,14 +85,28 @@ class SupplierView(QWidget):
         self.input_notes.setPlainText(data["notes"])
         
     def load_suppliers(self, suppliers: list) -> None:
-        headers = ["ID", "Supplier Name", "Contact Department", "Phone", "Email", "Address", "Is Active", "Notes"]
+        headers = ["ID", "Supplier Name", "Contact Department", "Phone", "Email", "Address", "Notes", "Is Active"]
         FormatComponents.format_qtablewidget(self.tableWidget, headers, suppliers)
         
     def load_user_information(self, user_info: dict) -> None:
         self.label_user_name.setText(f"UserName: {user_info.get('username', '')}")
         self.label_user_role.setText(f"UserRole: {user_info.get('user_role', '')}")
     
+    def on_search_text_changed(self, text: str) -> None:
+        self.search_text_changed.emit(text)
+    
     def init_combo_box_is_active(self):
         self.cbo_is_active.addItem("Active", True)
         self.cbo_is_active.addItem("Inactive", False)
         
+    def clear_form(self) -> None:
+        self.input_supplier_name.clear()
+        self.input_contact_department.clear()
+        self.input_phone.clear()
+        self.input_email.clear()
+        self.input_address.clear()
+        self.cbo_is_active.setCurrentIndex(0)
+        self.input_notes.clear()
+        
+        self.tableWidget.clearSelection()
+        self.tableWidget.setCurrentCell(-1, -1)

@@ -12,7 +12,6 @@ from views.receipt_view import ReceiptView
 from views.supplier_view import SupplierView
 from views.generic_view import GenericView
 
-
 from common.style_manager import StyleManager
 from common.status_bar_controller import StatusBarController
 

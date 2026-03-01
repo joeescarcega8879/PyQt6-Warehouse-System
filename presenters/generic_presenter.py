@@ -1,8 +1,8 @@
-import logging
+from config.logger_config import logger
 
 from models.material_model import MaterialModel
 
-from common.styles import StatusType
+from common.enums import StatusType
 
 class GenericPresenter:
 
@@ -44,7 +44,7 @@ class GenericPresenter:
                 materials = MaterialModel.search_by_id(int(query))
                 self.view.load_materials(materials)
             except Exception:
-                logging.exception("Error searching materials by id")
+                logger.exception("Error searching materials by id")
                 self._emit_error("Unexpected error during search")
             return
         
@@ -56,7 +56,7 @@ class GenericPresenter:
             materials = MaterialModel.search_by_name(query)
             self.view.load_materials(materials)
         except Exception:
-            logging.exception("Error searching materials by name")
+            logger.exception("Error searching materials by name")
             self._emit_error("Unexpected error during search")
      
     def _handle_double_click(self, row: int, column: int) -> None:
