@@ -206,7 +206,7 @@ class ProductionRequestModel:
             return []
         
     @staticmethod
-    def get_request_by_id(request_id: int) -> tuple | None:
+    def get_request_by_id(request_id: int) -> list[tuple]:
         """
         Retrieves a production request by its ID.
         Args:
@@ -245,7 +245,7 @@ class ProductionRequestModel:
             )
 
             if row:
-                return (
+                return [(
                     row["request_id"],
                     row["line_id"],
                     row["line_name"],
@@ -257,13 +257,12 @@ class ProductionRequestModel:
                     row["approved_by_name"],
                     row["approved_at"],
                     row["is_active"]
-                )
-            return None
+                )]
+            return []
         
         except DatabaseError as e:
             logger.error(f"Error retrieving production request by ID: {e}")
-            return None
-        
+            return []
         except Exception as e:
             logger.error(f"Unexpected error retrieving production request by ID: {e}")
-            return None
+            return []

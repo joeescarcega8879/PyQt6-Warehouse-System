@@ -181,66 +181,27 @@ class SupplierModel:
             return []
        
     @staticmethod
-    def search_by_supplier_id(supplier_id: int) -> tuple | None:
-          """
-          Searches for a supplier by its ID.
-          Args:
-               supplier_id: The ID of the supplier to search for.
-          Returns:
-                    A tuple containing supplier information if found, otherwise None.
-          """
-     
-          try:
-               row = QueryHelper.execute(
-                    """
-                    SELECT supplier_id, supplier_name, contact_department, phone, email, address, notes, is_active
-                    FROM suppliers
-                    WHERE supplier_id = :supplier_id
-                    """,
-                    {"supplier_id": supplier_id},
-               )
-               if row:
-                    return (
-                         row[0]["supplier_id"],
-                         row[0]["supplier_name"],
-                         row[0]["contact_department"],
-                         row[0]["phone"],
-                         row[0]["email"],
-                         row[0]["address"],
-                         row[0]["notes"],
-                         row[0]["is_active"]
-                    )
-               return None
-          except DatabaseError as e:
-               logger.error(f"Error searching for supplier by ID: {e}")
-               return None
-          except Exception as e:
-               logger.error(f"Unexpected error searching for supplier by ID: {e}")
-               return None
-     
-    @staticmethod
-    def search_by_supplier_name(supplier_name: str) -> list[tuple]:
-         """
-         Searches for suppliers by their name using a case-insensitive partial match.
-         Args:
-               supplier_name: The name (or partial name) of the supplier to search for.
-         Returns:
-               A list of tuples containing supplier information for all matching suppliers.         
-         """
-         
-         try:
-              rows = QueryHelper.execute(
-                   """
-                   SELECT supplier_id, supplier_name, contact_department, phone, email, address, notes, is_active
-                   FROM suppliers
-                   WHERE supplier_name ILIKE :supplier_name
-                   ORDER BY supplier_name
-                   """,
-                   {"supplier_name": f"%{supplier_name}%"}
-              )
-              
-              return [
-                   (
+    def search_by_supplier_id(supplier_id: int) -> list[tuple]:
+        """
+        Searches for a supplier by its ID.
+        Args:
+            supplier_id: The ID of the supplier to search for.
+        Returns:
+            A list containing a tuple with supplier information if found, otherwise an empty list.
+        """
+    
+        try:
+            row = QueryHelper.fetch_one(
+                """
+                SELECT supplier_id, supplier_name, contact_department, phone, email, address, notes, is_active
+                FROM suppliers
+                WHERE supplier_id = :supplier_id
+                """,
+                {"supplier_id": supplier_id},
+            )
+            if row:
+                return [
+                    (
                         row["supplier_id"],
                         row["supplier_name"],
                         row["contact_department"],
@@ -249,12 +210,53 @@ class SupplierModel:
                         row["address"],
                         row["notes"],
                         row["is_active"]
-                   )
-                   for row in rows
-              ]
-         except DatabaseError as e:
-               logger.error(f"Error searching for supplier by name: {e}")
-               return []
-         except Exception as e:
-               logger.error(f"Unexpected error searching for supplier by name: {e}")
-               return []
+                    )
+                ]
+            return []
+        except DatabaseError as e:
+            logger.error(f"Error searching for supplier by ID: {e}")
+            return []
+        except Exception as e:
+            logger.error(f"Unexpected error searching for supplier by ID: {e}")
+            return []
+     
+    @staticmethod
+    def search_by_supplier_name(supplier_name: str) -> list[tuple]:
+        """
+        Searches for suppliers by their name using a case-insensitive partial match.
+        Args:
+            supplier_name: The name (or partial name) of the supplier to search for.
+        Returns:
+            A list of tuples containing supplier information for all matching suppliers.         
+        """
+        
+        try:
+            rows = QueryHelper.fetch_all(
+                """
+                SELECT supplier_id, supplier_name, contact_department, phone, email, address, notes, is_active
+                FROM suppliers
+                WHERE supplier_name ILIKE :supplier_name
+                ORDER BY supplier_name
+                """,
+                {"supplier_name": f"%{supplier_name}%"}
+            )
+            
+            return [
+                (
+                    row["supplier_id"],
+                    row["supplier_name"],
+                    row["contact_department"],
+                    row["phone"],
+                    row["email"],
+                    row["address"],
+                    row["notes"],
+                    row["is_active"]
+                )
+                for row in rows
+            ]
+        except DatabaseError as e:
+            logger.error(f"Error searching for supplier by name: {e}")
+            return []
+        except Exception as e:
+            logger.error(f"Unexpected error searching for supplier by name: {e}")
+            return []

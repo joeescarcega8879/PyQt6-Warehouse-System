@@ -1,4 +1,4 @@
-import logging
+from config.logger_config import logger
 from common.enums import StatusType
 from models.material_model import MaterialModel
 
@@ -24,7 +24,7 @@ class MaterialPresenter:
         self.view.save_requested.connect(self._handle_save)
         self.view.edit_requested.connect(self._handle_edit)
         self.view.delete_requested.connect(self._handle_delete)
-        self.view.search_text_changed.connect(self.on_search_text_changed)
+        self.view.search_text_changed.connect(self._on_search_text_changed)
 
     def _handle_save(self) -> None:
         data = self.view.get_material_form_data() or {}
@@ -61,6 +61,22 @@ class MaterialPresenter:
                     description=description,
                     unit=unit,
                 )
+                
+                if success:
+                    AuditService.log_action(
+                        user_id=self.current_user.user_id,
+                        action=AuditDefinition.MATERIALS_EDITED,
+                        success=True,
+                        entity="Material",
+                        entity_id=self._current_material_id,
+                        meta={"name": name, "unit": unit, "description": description}
+                    )
+
+                    self._emit_success("Material updated successfully")
+                    self._post_save_cleanup()
+                else:
+                    self._emit_error("Error updating material")
+                    
             else:
 
                 if not PermissionService.has_permission(self.current_user, Permission.MATERIALS_CREATE):
@@ -80,24 +96,22 @@ class MaterialPresenter:
                     unit=unit,
                 )
 
-            if success:
+                if success:
+                    AuditService.log_action(
+                        user_id=self.current_user.user_id,
+                        action=AuditDefinition.MATERIALS_CREATED,
+                        success=True,
+                        entity="Material",
+                        meta={"name": name, "unit": unit, "description": description}
+                    )
 
-                AuditService.log_action(
-                    user_id=self.current_user.user_id,
-                    action=AuditDefinition.MATERIALS_CREATED,
-                    success=True,
-                    entity="Material",
-                    entity_id=self._current_material_id if self._current_material_id is not None else None,
-                    meta={"name": name, "unit": unit, "description": description}
-                )
-
-                self._emit_success("Material saved successfully")
-                self._post_save_cleanup()
-            else:
-                self._emit_error("Error saving material")
+                    self._emit_success("Material created successfully")
+                    self._post_save_cleanup()
+                else:
+                    self._emit_error("Error creating material")
 
         except Exception:
-            logging.exception("Error saving material")
+            logger.exception("Error saving material")
             self._emit_error("Unexpected error")
 
     def _handle_edit(self) -> None:
@@ -116,11 +130,11 @@ class MaterialPresenter:
             self._emit_error("Please select a valid material to delete")
             return
         
-        if not PermissionService.has_permission(self.current_user, Permission.DELETE_MATERIAL):
+        if not PermissionService.has_permission(self.current_user, Permission.MATERIALS_DELETE):
             self._emit_error("You do not have permission to delete materials")
             AuditService.log_action(
-                user_id=self.current_user.id,
-                action=Permission.DELETE_MATERIAL,
+                user_id=self.current_user.user_id,
+                action=AuditDefinition.MATERIALS_DELETED,
                 success=False,
                 entity="Material",
                 meta={"reason": "Insufficient permissions"}
@@ -146,10 +160,10 @@ class MaterialPresenter:
                 self._emit_error("Error deleting material")
 
         except Exception:
-            logging.exception("Error deleting material")
+            logger.exception("Error deleting material")
             self._emit_error("Unexpected error")
 
-    def on_search_text_changed(self, text: str) -> None:
+    def _on_search_text_changed(self, text: str) -> None:
         query = (text or "").strip()
 
         if not query:
@@ -162,7 +176,7 @@ class MaterialPresenter:
                 materials = MaterialModel.search_by_id(int(query))
                 self.view.load_materials(materials)
             except Exception:
-                logging.exception("Error searching materials by id")
+                logger.exception("Error searching materials by id")
                 self._emit_error("Unexpected error during search")
             return
 
@@ -175,7 +189,7 @@ class MaterialPresenter:
             materials = MaterialModel.search_by_name(query)
             self.view.load_materials(materials)
         except Exception:
-            logging.exception("Error searching materials by name")
+            logger.exception("Error searching materials by name")
             self._emit_error("Unexpected error during search")
 
     def _validate(self, data: dict) -> str | None:

@@ -1,4 +1,4 @@
-import logging
+from config.logger_config import logger
 from common.enums import StatusType
 from models.user_model import UserModel
 
@@ -25,7 +25,7 @@ class UserPresenter:
     def _connect_signals(self) -> None:
         self.view.save_requested.connect(self._handle_save)
         self.view.edit_requested.connect(self._handle_edit)
-        self.view.search_text_changed.connect(self._on_text_search_changed)
+        self.view.search_text_changed.connect(self._on_search_text_changed)
         self.view.change_password_requested.connect(self._handle_change_password)
 
 
@@ -49,6 +49,17 @@ class UserPresenter:
                     self._emit_error("Please select a valid user to edit")
                     return
                 
+                if not PermissionService.has_permission(self.current_user, Permission.USERS_EDIT):
+                    self._emit_error("You do not have permission to edit users")
+                    AuditService.log_action(
+                        user_id=self.current_user.user_id,
+                        action=AuditDefinition.USERS_EDITED,
+                        success=False,
+                        entity="User",
+                        meta={"reason": "Insufficient permissions"}
+                    )
+                    return
+                
                 success = UserModel.update_user_info(
                     user_id=self._current_user_id,
                     username=user_name,
@@ -56,7 +67,34 @@ class UserPresenter:
                     user_role=user_role,
                     is_active=is_active,
                 )
+                
+                if success:
+                    AuditService.log_action(
+                        user_id=self.current_user.user_id,
+                        action=AuditDefinition.USERS_EDITED,
+                        success=True,
+                        entity="User",
+                        entity_id=self._current_user_id,
+                        meta={"username": user_name, "user_role": user_role}
+                    )
+                    
+                    self._emit_success("User updated successfully")
+                    self._post_save_cleanup()
+                    self._load_init_data()
+                else:
+                    self._emit_error("Failed to update user. Username might already exist.")
             else:
+                if not PermissionService.has_permission(self.current_user, Permission.USERS_CREATE):
+                    self._emit_error("You do not have permission to create users")
+                    AuditService.log_action(
+                        user_id=self.current_user.user_id,
+                        action=AuditDefinition.USERS_CREATED,
+                        success=False,
+                        entity="User",
+                        meta={"reason": "Insufficient permissions"}
+                    )
+                    return
+                
                 success = UserModel.create_user(
                     username=user_name,
                     password=password,
@@ -65,14 +103,22 @@ class UserPresenter:
                     is_active=is_active,
                 )
 
-            if success:
-                self._emit_success("User saved successfully")
-                self._post_save_cleanup()
-                self._load_init_data()
-            else:
-                self._emit_error("Failed to save user. Username might already exist.")
+                if success:
+                    AuditService.log_action(
+                        user_id=self.current_user.user_id,
+                        action=AuditDefinition.USERS_CREATED,
+                        success=True,
+                        entity="User",
+                        meta={"username": user_name, "user_role": user_role}
+                    )
+                    
+                    self._emit_success("User created successfully")
+                    self._post_save_cleanup()
+                    self._load_init_data()
+                else:
+                    self._emit_error("Failed to create user. Username might already exist.")
         except Exception:
-            logging.exception("Error saving user")
+            logger.exception("Error saving user")
             self._emit_error("An unexpected error occurred while saving the user.")
 
     def _handle_edit(self) -> None:
@@ -85,7 +131,7 @@ class UserPresenter:
         self._current_user_id = user_data["user_id"]
         self.view.set_form_data(user_data)
 
-    def _on_text_search_changed(self, text: str) -> None:
+    def _on_search_text_changed(self, text: str) -> None:
         query = (text or "").strip()
 
         if not query:
@@ -97,8 +143,9 @@ class UserPresenter:
                 user_id = UserModel.get_user_by_id(int(query))
                 self.view.load_users(user_id)
             except Exception:
-                logging.exception("Error searching user by ID")
+                logger.exception("Error searching user by ID")
                 self._emit_error("Error searching user by ID")
+            return
         
         if len(query) < 3:
             return
@@ -107,7 +154,7 @@ class UserPresenter:
             users = UserModel.get_user_by_name(query)
             self.view.load_users(users)
         except Exception:
-            logging.exception("Error searching users by name")
+            logger.exception("Error searching users by name")
             self._emit_error("Error searching users by name")
 
     def _handle_change_password(self) -> None:

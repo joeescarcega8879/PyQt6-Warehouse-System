@@ -159,6 +159,10 @@
             <property name="text">
              <string>Suppliers</string>
             </property>
+            <property name="icon">
+             <iconset>
+              <normaloff>../86a7d96/IMG-Proveedor.png</normaloff>../86a7d96/IMG-Proveedor.png</iconset>
+            </property>
             <property name="iconSize">
              <size>
               <width>32</width>

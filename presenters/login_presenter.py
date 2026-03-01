@@ -1,4 +1,4 @@
-import logging
+from config.logger_config import logger
 from models.user_model import UserModel
 
 class LoginPresenter:
@@ -29,5 +29,5 @@ class LoginPresenter:
             self._on_login_success(user)
 
         except Exception as e:
-            logging.error(f"Login error: {e}")
+            logger.error(f"Login error: {e}")
             self.view.show_error("An unexpected error occurred during login.")

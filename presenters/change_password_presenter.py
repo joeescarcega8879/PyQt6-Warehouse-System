@@ -1,7 +1,10 @@
-import logging
+from config.logger_config import logger
 from models.user_model import UserModel
 
-from common.styles import StatusType
+from common.enums import StatusType
+
+from domain.audit_service import AuditService
+from domain.audit_definitions import AuditDefinition
 
 class ChangePasswordPresenter:
     def __init__(self, view, user_id, current_user, status_handler):
@@ -34,16 +37,25 @@ class ChangePasswordPresenter:
         try:
             success = UserModel.change_user_password(self.user_id, password)
 
-            if not success:
+            if success:
+                AuditService.log_action(
+                    user_id=self.current_user.user_id,
+                    action=AuditDefinition.USERS_PASSWORD_CHANGED,
+                    success=True,
+                    entity="User",
+                    entity_id=self.user_id,
+                    meta={"changed_by": self.current_user.username}
+                )
+                
+                self._emit_success("Password changed successfully")
+                self.view.accept()
+            else:
                 self._emit_error("Failed to change password")
                 return
         except Exception:
-            logging.exception("Error changing password for user")
+            logger.exception("Error changing password for user")
             self._emit_error("An unexpected error occurred while changing the password")
             return
-        
-        self._emit_success("Password changed successfully")
-        self.view.accept()
     
     def _validate(self, password: str, confirm_password: str) -> str | None:
 
