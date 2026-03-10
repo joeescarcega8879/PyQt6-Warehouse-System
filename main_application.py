@@ -1,7 +1,9 @@
 import sys
-from PyQt6.QtWidgets import QApplication, QMdiSubWindow
+from PyQt6.QtWidgets import QApplication, QMdiSubWindow, QMessageBox
+from PyQt6.QtCore import QObject, QEvent
 
-from database.connection import connect_db
+from database.connection import connect_db, close_db
+from config.settings import AppConfig
 from views.login_view import LoginView
 from views.main_view import MainView
 from views.user_view import UserView
@@ -14,6 +16,8 @@ from views.generic_view import GenericView
 
 from common.style_manager import StyleManager
 from common.status_bar_controller import StatusBarController
+from common.session_manager import SessionManager
+from common.error_messages import ErrorMessages
 
 from presenters.login_presenter import LoginPresenter
 from presenters.main_presenter import MainPresenter
@@ -25,11 +29,19 @@ from presenters.supplier_receipt_presenter import SupplierReceiptPresenter
 from presenters.supplier_presenter import SupplierPresenter
 from presenters.generic_presenter import GenericPresenter
 
-class MainApplication:
 
-    """Main application controller handling view navigation and interactions."""
+class MainApplication(QObject):
+    """
+    Main application controller handling view navigation and interactions.
+    Manages user session, authentication, and window lifecycle.
+    Inherits from QObject to support event filtering for session management.
+    """
 
-    def __init__(self):
+    def __init__(self, app: QApplication):
+        super().__init__()  # Initialize QObject
+        self.app = app
+        self.session_manager = None
+        self.current_user = None
         self._init_login()
 
     def _init_login(self):
@@ -44,8 +56,67 @@ class MainApplication:
         self.status_bar_controller = StatusBarController(self.main_view.statusBar())
         self.main_presenter = MainPresenter(self.main_view, main_app=self, current_user=self.current_user)
 
+        # Initialize and start session manager
+        self.session_manager = SessionManager()
+        self.session_manager.session_expired.connect(self._handle_session_expired)
+        self.session_manager.session_warning.connect(self._handle_session_warning)
+        
+        # Install event filter to track user activity
+        self.app.installEventFilter(self)
+        
+        self.session_manager.start()
+
         self.main_view.showMaximized()
         self.login_view.close()
+
+    def eventFilter(self, obj, event):
+        """
+        Event filter to track user activity and reset session timeout.
+        Resets the session timer on mouse/keyboard events.
+        """
+        if self.session_manager and self.session_manager.is_active:
+            # Reset timer on user interaction
+            if event.type() in (QEvent.Type.MouseButtonPress, QEvent.Type.KeyPress):
+                self.session_manager.reset()
+        
+        return False  # Don't consume the event
+
+    def _handle_session_expired(self):
+        """
+        Handle session timeout by logging out the user.
+        """
+        if self.session_manager:
+            self.session_manager.stop()
+        
+        # Show expiration message
+        QMessageBox.warning(
+            self.main_view if hasattr(self, 'main_view') else None,
+            "Session Expired",
+            ErrorMessages.SESSION_EXPIRED
+        )
+        
+        # Close main view and return to login
+        if hasattr(self, 'main_view'):
+            self.main_view.close()
+        
+        self._init_login()
+
+    def _handle_session_warning(self, minutes_remaining: int):
+        """
+        Handle session warning (optional - shows warning before timeout).
+        
+        Args:
+            minutes_remaining: Minutes until session expires
+        """
+        from common.enums import StatusType
+        
+        # Optional: Show warning dialog
+        if hasattr(self, 'status_bar_controller'):
+            self.status_bar_controller.show_message(
+                f"Session will expire in {minutes_remaining} minutes",
+                5000,
+                StatusType.WARNING
+            )
 
     def open_receipt_form(self) -> None:
         self.receipt_view = ReceiptView()
@@ -115,11 +186,26 @@ def main():
     StyleManager.load_global_styles()
     StyleManager.apply_to_app(app)
     
+    # Show environment info in development mode
+    if AppConfig.is_development():
+        print(f"\n{'='*50}")
+        print(f"  Warehouse System - {AppConfig.ENV.upper()}")
+        print(f"{'='*50}\n")
+    
+    # Attempt database connection
     if not connect_db():
+        print("\nFailed to connect to database.")
+        print("Please check your .env file and database credentials.\n")
         sys.exit(1)
     
-    controller = MainApplication()
-    sys.exit(app.exec())
+    # Initialize main application with app reference
+    controller = MainApplication(app)
+    
+    # Cleanup on exit
+    exit_code = app.exec()
+    close_db()
+    
+    sys.exit(exit_code)
 
 if __name__ == "__main__":
     main()

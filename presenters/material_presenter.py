@@ -1,24 +1,19 @@
 from config.logger_config import logger
-from common.enums import StatusType
 from models.material_model import MaterialModel
+from presenters.base_presenter import BasePresenter
 
 from domain.permissions import Permission
 from domain.permissions_service import PermissionService
 from domain.audit_service import AuditService
 from domain.audit_definitions import AuditDefinition
 
-class MaterialPresenter:
+class MaterialPresenter(BasePresenter):
     def __init__(self, view, status_handler, current_user):
-        self.view = view
-        self.status_handler = status_handler
-        self.current_user = current_user
-
-        self._is_editing = False
-        self._current_material_id: int | None = None
+        super().__init__(view, status_handler, current_user)
 
         self._connect_signals()
         self._load_init_data()
-        self._load_user_information()
+        self._load_user_information_to_view()
 
     def _connect_signals(self) -> None:
         self.view.save_requested.connect(self._handle_save)
@@ -120,7 +115,7 @@ class MaterialPresenter:
             self._emit_error("Please select a valid material to edit")
             return
 
-        self._is_editing = True
+        self._enter_edit_mode(data["id"])
         self._current_material_id = data["id"]
         self.view.set_form_data(data)
 
@@ -164,49 +159,33 @@ class MaterialPresenter:
             self._emit_error("Unexpected error")
 
     def _on_search_text_changed(self, text: str) -> None:
-        query = (text or "").strip()
-
-        if not query:
-            self._reload_materials()
-            return
-
-        # If the query is a number, search by ID first
-        if query.isdigit():
-            try:
-                materials = MaterialModel.search_by_id(int(query))
-                self.view.load_materials(materials)
-            except Exception:
-                logger.exception("Error searching materials by id")
-                self._emit_error("Unexpected error during search")
-            return
-
-
-        if len(query) < 3:
-            return
-
-        # For longer queries, search by name
-        try:
-            materials = MaterialModel.search_by_name(query)
-            self.view.load_materials(materials)
-        except Exception:
-            logger.exception("Error searching materials by name")
-            self._emit_error("Unexpected error during search")
+        self._handle_search_with_id_and_name(
+            query=text,
+            search_by_id_func=MaterialModel.search_by_id,
+            search_by_name_func=MaterialModel.search_by_name,
+            load_all_func=self._reload_materials,
+            load_results_func=self.view.load_materials,
+            min_name_length=3,
+            entity_name="materials"
+        )
 
     def _validate(self, data: dict) -> str | None:
         name = (data.get("name") or "").strip()
         unit = (data.get("unit") or "").strip()
-
-        if not name:
-            return "Material name is required"
-        if not unit:
-            return "Unit of measure is required"
-
+        
+        error = self._validate_required_field(name, "Material name")
+        if error:
+            return error
+        
+        error = self._validate_required_field(unit, "Unit of measure")
+        if error:
+            return error
+        
         return None
 
     def _post_save_cleanup(self) -> None:
-        self._is_editing = False
+        self._clear_form_and_reset_state()
         self._current_material_id = None
-        self.view.clear_form()
         self._reload_materials()
 
     def _reload_materials(self) -> None:
@@ -215,17 +194,4 @@ class MaterialPresenter:
 
     def _load_init_data(self) -> None:
         self._reload_materials()
-
-    def _load_user_information(self) -> None:
-        user_info = {
-            "username": self.current_user.username,
-            "user_role": self.current_user.user_role,
-        }
-        self.view.load_user_information(user_info)
-
-    def _emit_error(self, message: str) -> None:
-        self.status_handler(message, 3000, StatusType.ERROR)
-
-    def _emit_success(self, message: str) -> None:
-        self.status_handler(message, 3000, StatusType.SUCCESS)
 

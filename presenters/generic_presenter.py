@@ -1,14 +1,11 @@
-from config.logger_config import logger
-
 from models.material_model import MaterialModel
+from presenters.base_presenter import BasePresenter
 
-from common.enums import StatusType
 
-class GenericPresenter:
+class GenericPresenter(BasePresenter):
 
     def __init__(self, view, status_handler):
-        self.view = view
-        self.status_handler = status_handler
+        super().__init__(view, status_handler, current_user=None)
 
         self._load_list_materials()
         self._connect_signals()
@@ -31,33 +28,15 @@ class GenericPresenter:
         self.view.accept()
 
     def _on_search_text_changed(self, text: str) -> None:
-        
-        query = (text or "").strip()
-
-        if not query:
-            self._load_list_materials()
-            return
-        
-        # If the query is a number, search by ID first
-        if query.isdigit():
-            try:
-                materials = MaterialModel.search_by_id(int(query))
-                self.view.load_materials(materials)
-            except Exception:
-                logger.exception("Error searching materials by id")
-                self._emit_error("Unexpected error during search")
-            return
-        
-        if len(query) < 3:
-            return
-        
-        # For longer queries, search by name
-        try:
-            materials = MaterialModel.search_by_name(query)
-            self.view.load_materials(materials)
-        except Exception:
-            logger.exception("Error searching materials by name")
-            self._emit_error("Unexpected error during search")
+        self._handle_search_with_id_and_name(
+            query=text,
+            search_by_id_func=MaterialModel.search_by_id,
+            search_by_name_func=MaterialModel.search_by_name,
+            load_all_func=self._load_list_materials,
+            load_results_func=self.view.load_materials,
+            min_name_length=3,
+            entity_name="materials"
+        )
      
     def _handle_double_click(self, row: int, column: int) -> None:
         
@@ -76,10 +55,4 @@ class GenericPresenter:
     def _load_list_materials(self):
         materials = MaterialModel.get_all_materials()
         self.view.load_materials(materials)
-
-    def _emit_error(self, message: str) -> None:
-        self.status_handler(message, 3000, StatusType.ERROR)
-    
-    def _emit_success(self, message: str) -> None:
-        self.status_handler(message, 3000, StatusType.SUCCESS)
         

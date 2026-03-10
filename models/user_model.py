@@ -2,6 +2,7 @@ import bcrypt
 import logging
 from dataclasses import dataclass
 from database.query_helper import QueryHelper, DatabaseError
+from common.error_messages import ErrorMessages
 
 logger = logging.getLogger(__name__)
 
@@ -15,11 +16,19 @@ class AuthenticatedUser:
 class UserModel:
     """
     Class responsible for data logic and user authentication.
+    Handles secure error logging and provides generic error messages to users.
     """
 
     @staticmethod
-    def authenticate_user(username: str, password: str):
-        """Authenticates a user with the given username and password."""
+    def authenticate_user(username: str, password: str) -> tuple[AuthenticatedUser | None, str | None]:
+        """
+        Authenticates a user with the given username and password.
+        
+        Returns:
+            tuple[AuthenticatedUser | None, str | None]: (user, error_message)
+                - user: AuthenticatedUser object if successful, None otherwise
+                - error_message: None if successful, generic error message if failed
+        """
         try:
             row = QueryHelper.fetch_one(
                 """
@@ -30,16 +39,23 @@ class UserModel:
                 {"username": username},
             )
         except Exception as e:
-            return None, str(e)
+            error_msg = ErrorMessages.log_and_mask_error(
+                error=e,
+                context=f"authenticating user '{username}'",
+                user_message=ErrorMessages.AUTHENTICATION_ERROR
+            )
+            return None, error_msg
 
         if not row:
-            return None, "User not found or inactive."
+            # Use generic authentication error - don't reveal if user exists
+            return None, ErrorMessages.LOGIN_FAILED
 
         stored_hash = row["password_hash"]
         stored_hash_bytes = stored_hash.encode("utf-8") if isinstance(stored_hash, str) else bytes(stored_hash)
 
         if not bcrypt.checkpw(password.encode("utf-8"), stored_hash_bytes):
-            return None, "Invalid password."
+            # Use generic authentication error - don't reveal password is wrong
+            return None, ErrorMessages.LOGIN_FAILED
 
         return AuthenticatedUser(
             user_id=row["user_id"],
@@ -48,11 +64,18 @@ class UserModel:
         ), None
 
     @staticmethod
-    def create_user(username: str, password: str, full_name: str, user_role: str, is_active: bool = True):
-        """Creates a new user in the database."""
+    def create_user(username: str, password: str, full_name: str, user_role: str, is_active: bool = True) -> tuple[bool, str | None]:
+        """
+        Creates a new user in the database.
+        
+        Returns:
+            tuple[bool, str | None]: (success, error_message)
+                - success: True if user was created successfully
+                - error_message: None if successful, generic error message if failed
+        """
 
         if not username or not password or not full_name or not user_role:
-            return False, "All fields are required."
+            return False, ErrorMessages.VALIDATION_ERROR
         
         try:
             existing = QueryHelper.fetch_one(
@@ -60,7 +83,7 @@ class UserModel:
                 {"username": username},
             )
             if existing:
-                return False, "Username already exists."
+                return False, ErrorMessages.DUPLICATE_ERROR
             
             password_hash = bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt(),).decode("utf-8")
 
@@ -82,12 +105,23 @@ class UserModel:
             QueryHelper.commit()
             return True, None
         
+        except DatabaseError as e:
+            QueryHelper.rollback()
+            return False, ErrorMessages.log_and_mask_error(
+                error=e,
+                context=f"creating user '{username}'",
+                user_message=ErrorMessages.DATABASE_ERROR
+            )
         except Exception as e:
             QueryHelper.rollback()
-            return False, str(e)
+            return False, ErrorMessages.log_and_mask_error(
+                error=e,
+                context=f"creating user '{username}'",
+                user_message=ErrorMessages.GENERIC_ERROR
+            )
 
     @staticmethod
-    def update_user_info(user_id: int, username: str, full_name: str, user_role: str, is_active: bool):
+    def update_user_info(user_id: int, username: str, full_name: str, user_role: str, is_active: bool) -> tuple[bool, str | None]:
         """
         Updates an existing user's information in the database.
         args:
@@ -97,7 +131,9 @@ class UserModel:
             user_role (str): The new user role.
             is_active (bool): The new active status.
         Returns:
-            bool: True if the user was updated successfully, False otherwise.
+            tuple[bool, str | None]: (success, error_message)
+                - success: True if user was updated successfully
+                - error_message: None if successful, generic error message if failed
         """
         
         try:
@@ -120,17 +156,32 @@ class UserModel:
             )
            
             if result.get("rows_affected", 0) != 1:
-                return False, "User not found."
-            return True
+                logger.warning(f"User not found for update: ID {user_id}")
+                return False, ErrorMessages.NOT_FOUND
+            return True, None
         
         except DatabaseError as e:
-            logger.error(f"Error updating user {user_id}: {e}")
-            return False, str(e)
+            return False, ErrorMessages.log_and_mask_error(
+                error=e,
+                context=f"updating user ID {user_id}",
+                user_message=ErrorMessages.DATABASE_ERROR
+            )
+        except Exception as e:
+            return False, ErrorMessages.log_and_mask_error(
+                error=e,
+                context=f"updating user ID {user_id}",
+                user_message=ErrorMessages.GENERIC_ERROR
+            )
 
     @staticmethod
-    def get_all_users(include_inactive: bool = True):
+    def get_all_users(include_inactive: bool = True) -> tuple[list[tuple], str | None]:
         """
         Retrieves all users from the database.
+        
+        Returns:
+            tuple[list[tuple], str | None]: (users, error_message)
+                - users: List of user tuples if successful, empty list if error
+                - error_message: None if successful, generic error message if failed
         """
         try:
             sql = """
@@ -158,17 +209,29 @@ class UserModel:
             ]
             return users, None
 
+        except DatabaseError as e:
+            error_msg = ErrorMessages.log_and_mask_error(
+                error=e,
+                context="retrieving all users",
+                user_message=ErrorMessages.DATABASE_ERROR
+            )
+            return [], error_msg
         except Exception as e:
-            return [], str(e)
+            error_msg = ErrorMessages.log_and_mask_error(
+                error=e,
+                context="retrieving all users",
+                user_message=ErrorMessages.GENERIC_ERROR
+            )
+            return [], error_msg
 
     @staticmethod
-    def get_user_by_id(user_id: int) -> list[tuple] | None:
+    def get_user_by_id(user_id: int) -> list[tuple]:
         """
         Retrieves a user's information by their ID.
         Args:
             user_id (int): The ID of the user to retrieve.
         Returns:
-            list[tuple] | None: A tuple representing the user's information, or None if not
+            list[tuple]: A list containing the user tuple if found, empty list otherwise.
         """
 
         try:
@@ -182,7 +245,7 @@ class UserModel:
             )
 
             if not users:
-                return None
+                return []
             
             return [
                 (
@@ -195,20 +258,28 @@ class UserModel:
                 for user in users
             ]
         except DatabaseError as e:
-            logger.error(f"Error retrieving user {user_id}: {e}")
-            return None, str(e)
+            ErrorMessages.log_and_mask_error(
+                error=e,
+                context=f"retrieving user by ID {user_id}",
+                user_message=ErrorMessages.DATABASE_ERROR
+            )
+            return []
         except Exception as e:
-            logger.exception(f"Unexpected error retrieving user {user_id}: {e}")
-            return None, str(e)
+            ErrorMessages.log_and_mask_error(
+                error=e,
+                context=f"retrieving user by ID {user_id}",
+                user_message=ErrorMessages.GENERIC_ERROR
+            )
+            return []
         
     @staticmethod
-    def get_user_by_name(username: str) -> list[tuple] | None:
+    def get_user_by_name(username: str) -> list[tuple]:
         """
         Retrieves a user's information by their username.
         Args:
             username (str): The username of the user to retrieve.
         Returns:
-            list[tuple] | None: A tuple representing the user's information, or None if not found.
+            list[tuple]: A list containing the user tuple if found, empty list otherwise.
         """
 
         try:
@@ -222,7 +293,7 @@ class UserModel:
             )
 
             if not users:
-                return None
+                return []
             
             return [
                 (
@@ -236,19 +307,32 @@ class UserModel:
             ]
         
         except DatabaseError as e:
-            logger.error(f"Error retrieving user {username}: {e}")
-            return None, str(e)
+            ErrorMessages.log_and_mask_error(
+                error=e,
+                context=f"retrieving user by username '{username}'",
+                user_message=ErrorMessages.DATABASE_ERROR
+            )
+            return []
         except Exception as e:
-            logger.exception(f"Unexpected error retrieving user {username}: {e}")
-            return None, str(e)
+            ErrorMessages.log_and_mask_error(
+                error=e,
+                context=f"retrieving user by username '{username}'",
+                user_message=ErrorMessages.GENERIC_ERROR
+            )
+            return []
 
     @staticmethod
-    def change_user_password(user_id: int, new_password: str):
+    def change_user_password(user_id: int, new_password: str) -> tuple[bool, str | None]:
         """
         Changes the password for a given user.
+        
+        Returns:
+            tuple[bool, str | None]: (success, error_message)
+                - success: True if password was changed successfully
+                - error_message: None if successful, generic error message if failed
         """
         if not isinstance(new_password, str) or not new_password.strip():
-            return False, "New password is required."
+            return False, ErrorMessages.VALIDATION_ERROR
 
         try:
             password_hash = bcrypt.hashpw(
@@ -269,13 +353,20 @@ class UserModel:
             )
 
             if result.get("rows_affected", 0) != 1:
-                return False, "User not found."
+                logger.warning(f"User not found for password change: ID {user_id}")
+                return False, ErrorMessages.NOT_FOUND
 
             return True, None
 
         except DatabaseError as e:
-            logger.exception("Error changing password for user %s: %s", user_id, e)
-            return False, str(e)
+            return False, ErrorMessages.log_and_mask_error(
+                error=e,
+                context=f"changing password for user ID {user_id}",
+                user_message=ErrorMessages.DATABASE_ERROR
+            )
         except Exception as e:
-            logger.exception("Unexpected error changing password for user %s: %s", user_id, e)
-            return False, str(e)
+            return False, ErrorMessages.log_and_mask_error(
+                error=e,
+                context=f"changing password for user ID {user_id}",
+                user_message=ErrorMessages.GENERIC_ERROR
+            )

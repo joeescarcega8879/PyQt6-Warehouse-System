@@ -1,6 +1,6 @@
 # PyQt6 Warehouse System
 
-Desktop mini-ERP/warehouse app built with Python + PyQt6 using an MVP architecture (Model-View-Presenter). Uses PostgreSQL via Qt's SQL driver (`QPSQL`), includes authentication (bcrypt), role-based permissions (RBAC), and audit logging.
+Desktop mini-ERP/warehouse app built with Python + PyQt6 using an MVP architecture. Uses PostgreSQL, includes authentication (bcrypt), role-based permissions (RBAC), and audit logging.
 
 ![Python](https://img.shields.io/badge/Python-97.7%25-blue.svg)
 ![PyQt6](https://img.shields.io/badge/PyQt6-Desktop-orange.svg)
@@ -10,10 +10,13 @@ Desktop mini-ERP/warehouse app built with Python + PyQt6 using an MVP architectu
 
 ## Features
 
-- Secure authentication (bcrypt)
+- Secure authentication with bcrypt
+- Password complexity validation
+- Login rate limiting and brute force protection
+- Session timeout for security
 - Role-based access control (RBAC)
-- Audit trail (DB-based audit_log)
-- Materials and production lines modules
+- Audit trail
+- Materials, suppliers, and production management
 - MDI interface (forms open as subwindows)
 
 ---
@@ -26,49 +29,71 @@ Desktop mini-ERP/warehouse app built with Python + PyQt6 using an MVP architectu
 - PostgreSQL 14+
 - PyQt6
 
-### Install
+### Installation
 
-Option A: Conda
+1. **Clone the repository**
+   ```bash
+   git clone https://github.com/joeescarcega8879/PyQt6-Warehouse-System.git
+   cd PyQt6-Warehouse-System
+   ```
 
-```bash
-conda env create -f environment.yml
-conda activate warehouse-system
-```
+2. **Install dependencies**
+   ```bash
+   pip install -r requirements.txt
+   ```
 
-Option B: Pip
+3. **Configure environment variables**
+   ```bash
+   cp .env.example .env
+   # Edit .env with your database credentials
+   ```
 
-```bash
-python3 -m pip install -r requirements.txt
-```
+4. **Run database migrations**
+   ```bash
+   psql -U your_username -d inventory_production_db -f database/migrations/001_create_login_attempts.sql
+   ```
 
-### Run
+5. **Run the application**
+   ```bash
+   python main_application.py
+   ```
 
-```bash
-python3 main_application.py
-```
+---
+
+## Configuration
+
+All sensitive configuration is managed through environment variables in the `.env` file:
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `DB_HOST` | Database host | localhost |
+| `DB_PORT` | Database port | 5432 |
+| `DB_NAME` | Database name | (required) |
+| `DB_USER` | Database username | (required) |
+| `DB_PASSWORD` | Database password | (required) |
+| `SESSION_TIMEOUT_MINUTES` | Session timeout | 30 |
+| `MAX_LOGIN_ATTEMPTS` | Max failed logins | 5 |
+| `PASSWORD_MIN_LENGTH` | Min password length | 8 |
+
+**IMPORTANT:** Never commit the `.env` file to version control.
 
 ---
 
 ## Project Structure
 
-This repository does not use a `src/` layout. The current structure is:
-
 ```
 PyQt6-Warehouse-System/
-├── assets/                     # Images and styles
-├── common/                     # UI helpers (formatting, styles, status bar)
-├── config/                     # App logging configuration
-├── database/                   # DB connection + query helper (QSqlQuery)
-├── domain/                     # Permissions, roles, audit definitions
-├── logs/                       # Runtime logs (generated)
-├── models/                     # Data layer (SQL queries)
-├── presenters/                 # Presenter layer (business logic)
-├── ui/                         # Qt Designer .ui files
-├── views/                      # View layer (PyQt6 widgets, load .ui)
-├── main_application.py         # Entry point
-├── requirements.txt
-├── environment.yml
-└── README.md
+├── common/                # Error handling, session manager
+├── config/                # Configuration and logging
+├── database/              # DB connection + migrations
+├── domain/                # Business logic (permissions, audit, password policy)
+├── models/                # Data layer (base_model.py + specific models)
+├── presenters/            # Presenter layer (base_presenter.py + specific presenters)
+├── views/                 # View layer (PyQt6 widgets)
+├── ui/                    # Qt Designer .ui files
+├── tests/                 # Unit tests (pytest)
+├── .env.example           # Environment template
+└── main_application.py    # Entry point
 ```
 
 ---
@@ -77,34 +102,23 @@ PyQt6-Warehouse-System/
 
 MVP (Model-View-Presenter):
 
-- Model: `models/` + `database/` (PostgreSQL access through `QueryHelper`)
-- View: `views/` + `ui/` (PyQt6 widgets + Qt Designer UI)
-- Presenter: `presenters/` (coordinates view events and model calls)
+- **Model**: `models/` - Database access using BaseModel pattern
+- **View**: `views/` + `ui/` - PyQt6 widgets + Qt Designer UI
+- **Presenter**: `presenters/` - Business logic using BasePresenter pattern
+- **Domain**: `domain/` - Security policies and permissions
+- **Common**: `common/` - Shared utilities
 
 ---
 
-## Database Notes
+## Testing
 
-- The app connects using Qt's PostgreSQL driver: `QPSQL`.
-- Database credentials are currently hardcoded in `database/connection.py`.
-  - Recommended next step: move DB settings to environment variables or a `.env` file.
+Run tests with pytest:
 
----
-
-## Modules (Current)
-
-- Users: `models/user_model.py`, `views/user_view.py`, `presenters/user_presenter.py`
-- Materials: `models/material_model.py`, `views/material_view.py`, `presenters/material_presenter.py`
-- Production Lines: `models/production_line_model.py`, `views/line_view.py`, `presenters/production_line_presenter.py`
-- Audit Log: `models/audit_model.py`, `domain/audit_service.py`
-- Supplier Receipts (model only for now): `models/supplier_receipt_model.py`
-
----
-
-## Troubleshooting
-
-- If you see `QPSQL driver not loaded`, install the Qt SQL PostgreSQL driver for your OS.
-- If `import PyQt6` fails, install PyQt6 in your environment.
+```bash
+pytest tests/                          # Run all tests
+pytest tests/ --cov                    # With coverage report
+pytest tests/unit/models/ -v           # Specific module with verbose output
+```
 
 ---
 
@@ -114,4 +128,4 @@ Joe Escarcega
 
 ## Support
 
-- Report issues: https://github.com/joeescarcega8879/PyQt6-Warehouse-System/issues
+Report issues: https://github.com/joeescarcega8879/PyQt6-Warehouse-System/issues

@@ -2,10 +2,14 @@ from __future__ import annotations
 
 from config.logger_config import logger
 from database.query_helper import QueryHelper, DatabaseError
+from common.error_messages import ErrorMessages
 
 
 class SupplierReceiptModel:
-    """Model class for managing supplier receipts in the database."""
+    """
+    Model class for managing supplier receipts in the database.
+    Handles secure error logging and provides generic error messages to users.
+    """
 
     @staticmethod
     def add_receipt(
@@ -27,7 +31,10 @@ class SupplierReceiptModel:
             notes: Optional notes.
 
         Returns:
-            (success, error_message, receipt_id)
+            tuple[bool, str | None, int | None]: (success, error_message, receipt_id)
+                - success: True if receipt was created successfully
+                - error_message: None if successful, generic error message if failed
+                - receipt_id: ID of created receipt if successful, None otherwise
         """
 
         try:
@@ -64,12 +71,20 @@ class SupplierReceiptModel:
             return True, None, int(receipt_id) if receipt_id is not None else None
 
         except DatabaseError as e:
-            logger.error(f"Error adding supplier receipt: {e}")
-            return False, str(e), None
+            error_msg = ErrorMessages.log_and_mask_error(
+                error=e,
+                context=f"adding supplier receipt for material ID {material_id}",
+                user_message=ErrorMessages.DATABASE_ERROR
+            )
+            return False, error_msg, None
 
         except Exception as e:
-            logger.error(f"Unexpected error adding supplier receipt: {e}")
-            return False, str(e), None
+            error_msg = ErrorMessages.log_and_mask_error(
+                error=e,
+                context=f"adding supplier receipt for material ID {material_id}",
+                user_message=ErrorMessages.GENERIC_ERROR
+            )
+            return False, error_msg, None
 
     @staticmethod
     def update_receipt(
@@ -83,6 +98,11 @@ class SupplierReceiptModel:
         """Update an existing supplier receipt.
         
         Note: created_by field is intentionally not updated to preserve audit trail.
+        
+        Returns:
+            tuple[bool, str | None]: (success, error_message)
+                - success: True if receipt was updated successfully
+                - error_message: None if successful, generic error message if failed
         """
 
         try:
@@ -107,21 +127,34 @@ class SupplierReceiptModel:
             )
 
             if result.get("rows_affected", 0) != 1:
-                return False, "Receipt not found."
+                logger.warning(f"Supplier receipt not found for update: ID {receipt_id}")
+                return False, ErrorMessages.NOT_FOUND
 
             return True, None
 
         except DatabaseError as e:
-            logger.error(f"Error updating supplier receipt {receipt_id}: {e}")
-            return False, str(e)
+            return False, ErrorMessages.log_and_mask_error(
+                error=e,
+                context=f"updating supplier receipt ID {receipt_id}",
+                user_message=ErrorMessages.DATABASE_ERROR
+            )
 
         except Exception as e:
-            logger.error(f"Unexpected error updating supplier receipt {receipt_id}: {e}")
-            return False, str(e)
+            return False, ErrorMessages.log_and_mask_error(
+                error=e,
+                context=f"updating supplier receipt ID {receipt_id}",
+                user_message=ErrorMessages.GENERIC_ERROR
+            )
 
     @staticmethod
     def delete_receipt(receipt_id: int) -> tuple[bool, str | None]:
-        """Delete a supplier receipt."""
+        """Delete a supplier receipt.
+        
+        Returns:
+            tuple[bool, str | None]: (success, error_message)
+                - success: True if receipt was deleted successfully
+                - error_message: None if successful, generic error message if failed
+        """
 
         try:
             result = QueryHelper.execute(
@@ -133,21 +166,33 @@ class SupplierReceiptModel:
             )
 
             if result.get("rows_affected", 0) != 1:
-                return False, "Receipt not found."
+                logger.warning(f"Supplier receipt not found for deletion: ID {receipt_id}")
+                return False, ErrorMessages.NOT_FOUND
 
             return True, None
 
         except DatabaseError as e:
-            logger.error(f"Error deleting supplier receipt {receipt_id}: {e}")
-            return False, str(e)
+            return False, ErrorMessages.log_and_mask_error(
+                error=e,
+                context=f"deleting supplier receipt ID {receipt_id}",
+                user_message=ErrorMessages.DATABASE_ERROR
+            )
 
         except Exception as e:
-            logger.error(f"Unexpected error deleting supplier receipt {receipt_id}: {e}")
-            return False, str(e)
+            return False, ErrorMessages.log_and_mask_error(
+                error=e,
+                context=f"deleting supplier receipt ID {receipt_id}",
+                user_message=ErrorMessages.GENERIC_ERROR
+            )
 
     @staticmethod
     def get_all_receipts() -> list[tuple]:
-        """Return all receipts ordered by newest first."""
+        """Return all receipts ordered by newest first.
+        
+        Returns:
+            list[tuple]: A list of tuples containing receipt information.
+                Returns empty list if error occurs.
+        """
 
         try:
             rows = QueryHelper.fetch_all(
@@ -172,11 +217,19 @@ class SupplierReceiptModel:
             ]
 
         except DatabaseError as e:
-            logger.error(f"Error retrieving supplier receipts: {e}")
+            ErrorMessages.log_and_mask_error(
+                error=e,
+                context="retrieving all supplier receipts",
+                user_message=ErrorMessages.DATABASE_ERROR
+            )
             return []
 
         except Exception as e:
-            logger.error(f"Unexpected error retrieving supplier receipts: {e}")
+            ErrorMessages.log_and_mask_error(
+                error=e,
+                context="retrieving all supplier receipts",
+                user_message=ErrorMessages.GENERIC_ERROR
+            )
             return []
 
     @staticmethod
@@ -215,16 +268,29 @@ class SupplierReceiptModel:
             return None
 
         except DatabaseError as e:
-            logger.error(f"Error searching supplier receipt by id {receipt_id}: {e}")
+            ErrorMessages.log_and_mask_error(
+                error=e,
+                context=f"searching supplier receipt by ID {receipt_id}",
+                user_message=ErrorMessages.DATABASE_ERROR
+            )
             return None
 
         except Exception as e:
-            logger.error(f"Unexpected error searching supplier receipt by id {receipt_id}: {e}")
+            ErrorMessages.log_and_mask_error(
+                error=e,
+                context=f"searching supplier receipt by ID {receipt_id}",
+                user_message=ErrorMessages.GENERIC_ERROR
+            )
             return None
 
     @staticmethod
     def search_by_supplier_name(supplier_name: str) -> list[tuple]:
-        """Search receipts by supplier name (ILIKE match)."""
+        """Search receipts by supplier name (ILIKE match).
+        
+        Returns:
+            list[tuple]: A list of tuples containing receipt information.
+                Returns empty list if not found or error occurs.
+        """
 
         try:
             rows = QueryHelper.fetch_all(
@@ -251,10 +317,17 @@ class SupplierReceiptModel:
             ]
 
         except DatabaseError as e:
-            logger.error(f"Error searching supplier receipts by supplier '{supplier_name}': {e}")
+            ErrorMessages.log_and_mask_error(
+                error=e,
+                context=f"searching supplier receipts by supplier name '{supplier_name}'",
+                user_message=ErrorMessages.DATABASE_ERROR
+            )
             return []
 
         except Exception as e:
-            logger.error(f"Unexpected error searching supplier receipts by supplier '{supplier_name}': {e}")
+            ErrorMessages.log_and_mask_error(
+                error=e,
+                context=f"searching supplier receipts by supplier name '{supplier_name}'",
+                user_message=ErrorMessages.GENERIC_ERROR
+            )
             return []
-

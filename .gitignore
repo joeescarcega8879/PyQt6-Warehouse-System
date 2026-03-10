@@ -67,5 +67,14 @@ Desktop.ini
 *.db-journal
 
 # --- Environment / secrets ---
+# CRITICAL: Never commit .env files containing credentials
 .env
-.env.*
+.env.local
+.env.*.local
+!.env.example
+
+# --- Documentation (except README.md) ---
+# Keep only README.md, ignore all other markdown files and docs folder
+*.md
+!README.md
+docs/

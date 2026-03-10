@@ -1,12 +1,34 @@
 import logging
-from database.query_helper import DatabaseError, QueryHelper
+from models.base_model import BaseModel
 
 logger = logging.getLogger(__name__)
 
-class MaterialModel:
+class MaterialModel(BaseModel):
+    """
+    Model for managing materials in the database.
+    Handles secure error logging and provides generic error messages to users.
+    Extends BaseModel for common database operations.
+    """
+
+    # Table metadata
+    TABLE_NAME = "materials"
+    ENTITY_NAME = "material"
+    ID_COLUMN = "material_id"
+    NAME_COLUMN = "material_name"
+    COLUMNS = "material_id, material_name, description, unit_of_measure"
 
     @staticmethod
-    def add_material(name: str, description: str, unit: str) -> tuple[bool, str]:
+    def _map_material_row(row: dict) -> tuple:
+        """Map database row to material tuple."""
+        return (
+            row["material_id"],
+            row["material_name"],
+            row["description"],
+            row["unit_of_measure"],
+        )
+
+    @staticmethod
+    def add_material(name: str, description: str, unit: str) -> tuple[bool, str | None]:
         """
         Adds a new material to the database.
         Args:
@@ -14,36 +36,31 @@ class MaterialModel:
             description (str): A brief description of the material.
             unit (str): The unit of measurement for the material.
         Returns:
-            tuple[bool, str]: A tuple containing a boolean indicating success and an error message if any.
+            tuple[bool, str | None]: (success, error_message)
+                - success: True if material was added successfully
+                - error_message: None if successful, generic error message if failed
         """
-        try:
-            result = QueryHelper.execute(
-                """
-                INSERT INTO materials (material_name, description, unit_of_measure)
-                VALUES (:name, :description, :unit)
-                """,
-                {
-                    "name": name,
-                    "description": description,
-                    "unit": unit
-                },
-            )
+        sql = """
+            INSERT INTO materials (material_name, description, unit_of_measure)
+            VALUES (:name, :description, :unit)
+        """
+        params = {
+            "name": name,
+            "description": description,
+            "unit": unit
+        }
+        
+        success, error, _ = MaterialModel._execute_insert(
+            sql=sql,
+            params=params,
+            entity_name=MaterialModel.ENTITY_NAME,
+            context=f"adding material '{name}'"
+        )
+        
+        return success, error
 
-            if result.get("rows_affected", 0) != 1:
-                return False, "Failed to add material."
-    
-            return True, None
-        
-        except DatabaseError as e:
-            logger.error(f"Error adding material: {e}")
-            return False
-        
-        except Exception as e:
-            logger.error(f"Unexpected error adding material: {e}")
-            return False, str(e)
-    
     @staticmethod
-    def update_material(material_id: int, name: str, description: str, unit: str) -> tuple[bool, str]:
+    def update_material(material_id: int, name: str, description: str, unit: str) -> tuple[bool, str | None]:
         """
         Updates an existing material in the database.
         Args:
@@ -52,140 +69,92 @@ class MaterialModel:
             description (str): The new description of the material.
             unit (str): The new unit of measurement for the material.
         Returns:
-            tuple[bool, str]: A tuple containing a boolean indicating success and an error message if any.
+            tuple[bool, str | None]: (success, error_message)
+                - success: True if material was updated successfully
+                - error_message: None if successful, generic error message if failed
         """
-        try:
-            result = QueryHelper.execute(
-                """
-                UPDATE materials
-                SET material_name = :name,
-                    description = :description,
-                    unit_of_measure = :unit
-                WHERE material_id = :material_id
-                """,
-                {
-                    "material_id": material_id,
-                    "name": name,
-                    "description": description,
-                    "unit": unit
-                },
-            )
+        sql = """
+            UPDATE materials
+            SET material_name = :name,
+                description = :description,
+                unit_of_measure = :unit
+            WHERE material_id = :material_id
+        """
+        params = {
+            "material_id": material_id,
+            "name": name,
+            "description": description,
+            "unit": unit
+        }
+        
+        return MaterialModel._execute_update(
+            sql=sql,
+            params=params,
+            entity_name=MaterialModel.ENTITY_NAME,
+            entity_id=material_id,
+            context=f"updating material ID {material_id}"
+        )
 
-            if result.get("rows_affected", 0) != 1:
-                return False, "Material not found."
-        
-            return True, None
-        
-        except DatabaseError as e:
-            logger.error(f"Error updating material {material_id}: {e}")
-            return False, str(e)
-        
-        except Exception as e:
-            logger.error(f"Unexpected error updating material {material_id}: {e}")
-            return False, str(e)
-        
     @staticmethod
-    def delete_material(material_id: int) -> tuple[bool, str]:
+    def delete_material(material_id: int) -> tuple[bool, str | None]:
         """
         Deletes a material from the database.
         Args:
             material_id (int): The ID of the material to delete.
         Returns:
-            tuple[bool, str]: A tuple containing a boolean indicating success and an error message if any.
+            tuple[bool, str | None]: (success, error_message)
+                - success: True if material was deleted successfully
+                - error_message: None if successful, generic error message if failed
         """
-        try:
-            result = QueryHelper.execute(
-                """
-                DELETE FROM materials
-                WHERE material_id = :material_id
-                """,
-                {
-                    "material_id": material_id
-                },
-            )
+        sql = """
+            DELETE FROM materials
+            WHERE material_id = :material_id
+        """
+        params = {"material_id": material_id}
         
-            if result.get("rows_affected", 0) != 1:
-                return False, "Material not found."
-            return True, None
-        
-        except DatabaseError as e:
-            logger.error(f"Error deleting material {material_id}: {e}")
-            return False, str(e)
-        
-        except Exception as e:
-            logger.error(f"Unexpected error deleting material {material_id}: {e}")
-            return False, str(e)
-    
+        return MaterialModel._execute_delete(
+            sql=sql,
+            params=params,
+            entity_name=MaterialModel.ENTITY_NAME,
+            entity_id=material_id,
+            context=f"deleting material ID {material_id}"
+        )
+
     @staticmethod
     def get_all_materials() -> list[tuple]:
         """
         Retrieves all materials from the database.
         Returns:
             list[tuple]: Tuples in the order (material_id, material_name, description, unit_of_measure).
+                Returns empty list if error occurs.
         """
-        try:
-            rows = QueryHelper.fetch_all(
-                """
-                SELECT material_id, material_name, description, unit_of_measure
-                FROM materials
-                ORDER BY material_id ASC
-                """
-            )
-
-            return [
-                (
-                    row["material_id"],
-                    row["material_name"],
-                    row["description"],
-                    row["unit_of_measure"],
-                )
-                for row in rows
-            ]
-        
-        except DatabaseError as e:
-            logger.error(f"Error fetching materials: {e}")
-            return []
-        
-        except Exception as e:
-            logger.error(f"Unexpected error fetching materials: {e}")
-            return []
+        return MaterialModel._get_all_pattern(
+            table_name=MaterialModel.TABLE_NAME,
+            columns=MaterialModel.COLUMNS,
+            entity_name=MaterialModel.ENTITY_NAME,
+            row_mapper=MaterialModel._map_material_row,
+            order_by=MaterialModel.ID_COLUMN
+        )
 
     @staticmethod
-    def search_by_id(material_id: int)-> list[tuple]:
+    def search_by_id(material_id: int) -> list[tuple]:
         """
         Searches for a material by its ID.
         Args:
             material_id (int): The ID of the material to search for.
         Returns:
-            list[tuple]: Tuples in the order (material_id, material_name, description, unit_of_measure).   
+            list[tuple]: Tuples in the order (material_id, material_name, description, unit_of_measure).
+                Returns empty list if not found or error occurs.
         """
+        return MaterialModel._search_by_id_pattern(
+            table_name=MaterialModel.TABLE_NAME,
+            columns=MaterialModel.COLUMNS,
+            id_column=MaterialModel.ID_COLUMN,
+            entity_id=material_id,
+            entity_name=MaterialModel.ENTITY_NAME,
+            row_mapper=MaterialModel._map_material_row
+        )
 
-        try:
-            rows = QueryHelper.fetch_all( 
-            """
-                SELECT material_id, material_name, description, unit_of_measure
-                FROM materials
-                WHERE material_id = :id
-                ORDER BY material_id
-            """,
-            {"id": material_id}
-
-            )
-
-            return [
-                (
-                    row["material_id"],
-                    row["material_name"],
-                    row["description"],
-                    row["unit_of_measure"],
-                )
-                for row in rows
-            ]
-
-        except DatabaseError as e:
-            logger.exception(f"Error searching material by ID {material_id}: {e}")
-            return []
-        
     @staticmethod
     def search_by_name(material_name: str) -> list[tuple]:
         """
@@ -194,34 +163,14 @@ class MaterialModel:
             material_name (str): The name of the material to search for.
         Returns:
             list[tuple]: Tuples in the order (material_id, material_name, description, unit_of_measure).
+                Returns empty list if not found or error occurs.
         """
-        try:
-            rows = QueryHelper.fetch_all( 
-            """
-                SELECT material_id, material_name, description, unit_of_measure
-                FROM materials
-                WHERE material_name ILIKE :name
-                ORDER BY material_id
-            """,
-            {"name": f"%{material_name}%"}
-
-            )
-
-            return [
-                (
-                    row["material_id"],
-                    row["material_name"],
-                    row["description"],
-                    row["unit_of_measure"],
-                )
-                for row in rows
-            ]
-
-        except DatabaseError as e:
-            logger.exception(f"Error searching material by name {material_name}: {e}")
-            return []
-        
-        except Exception as e:
-            logger.exception(f"Unexpected error searching material by name {material_name}: {e}")
-            return []
-
+        return MaterialModel._search_by_name_pattern(
+            table_name=MaterialModel.TABLE_NAME,
+            columns=MaterialModel.COLUMNS,
+            name_column=MaterialModel.NAME_COLUMN,
+            search_term=material_name,
+            entity_name=MaterialModel.ENTITY_NAME,
+            row_mapper=MaterialModel._map_material_row,
+            order_by=MaterialModel.ID_COLUMN
+        )

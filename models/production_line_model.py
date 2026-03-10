@@ -1,13 +1,15 @@
 from config.logger_config import logger
 from database.query_helper import QueryHelper, DatabaseError
+from common.error_messages import ErrorMessages
 
 class ProductionLineModel:
     """
     Model class for managing production lines in the database.
+    Handles secure error logging and provides generic error messages to users.
     """
 
     @staticmethod
-    def add_production_line(name: str, description: str, is_active: bool)-> tuple[bool, str]:
+    def add_production_line(name: str, description: str, is_active: bool) -> tuple[bool, str | None]:
         """
         Adds a new production line to the database.
         Args:
@@ -15,7 +17,9 @@ class ProductionLineModel:
             description (str): A brief description of the production line.
             is_active (bool): Status indicating if the production line is active.
         Returns:
-            bool: True if the production line was added successfully, False otherwise.
+            tuple[bool, str | None]: (success, error_message)
+                - success: True if the production line was added successfully
+                - error_message: None if successful, generic error message if failed
         """
         try:
             result = QueryHelper.execute(
@@ -31,20 +35,27 @@ class ProductionLineModel:
             )
 
             if result.get("rows_affected", 0) != 1:
-                return False, "Failed to add production line."
+                logger.warning(f"Failed to add production line: {name}")
+                return False, ErrorMessages.SAVE_FAILED
             
             return True, None
         
         except DatabaseError as e:
-            logger.error(f"Error adding production line: {e}")
-            return False, str(e)
+            return False, ErrorMessages.log_and_mask_error(
+                error=e,
+                context=f"adding production line '{name}'",
+                user_message=ErrorMessages.DATABASE_ERROR
+            )
         
         except Exception as e:
-            logger.error(f"Unexpected error adding production line: {e}")
-            return False, str(e)
+            return False, ErrorMessages.log_and_mask_error(
+                error=e,
+                context=f"adding production line '{name}'",
+                user_message=ErrorMessages.GENERIC_ERROR
+            )
 
     @staticmethod
-    def update_production_line(line_id: int, line_name: str, description: str, is_active: bool)-> tuple[bool, str]:
+    def update_production_line(line_id: int, line_name: str, description: str, is_active: bool) -> tuple[bool, str | None]:
         """
         Updates an existing production line in the database.
         Args:
@@ -53,7 +64,9 @@ class ProductionLineModel:
             description (str): The new description of the production line.
             is_active (bool): The new active status of the production line.
         Returns:
-            bool: True if the production line was updated successfully, False otherwise.
+            tuple[bool, str | None]: (success, error_message)
+                - success: True if the production line was updated successfully
+                - error_message: None if successful, generic error message if failed
         """
         try:
             result = QueryHelper.execute(
@@ -73,17 +86,24 @@ class ProductionLineModel:
             )
 
             if result.get("rows_affected", 0) != 1:
-                return False, "Production line not found."
+                logger.warning(f"Production line not found for update: ID {line_id}")
+                return False, ErrorMessages.NOT_FOUND
             
             return True, None
         
         except DatabaseError as e:
-            logger.error(f"Error updating production line {line_id}: {e}")
-            return False, str(e)
+            return False, ErrorMessages.log_and_mask_error(
+                error=e,
+                context=f"updating production line ID {line_id}",
+                user_message=ErrorMessages.DATABASE_ERROR
+            )
         
         except Exception as e:
-            logger.error(f"Unexpected error updating production line {line_id}: {e}")
-            return False, str(e)
+            return False, ErrorMessages.log_and_mask_error(
+                error=e,
+                context=f"updating production line ID {line_id}",
+                user_message=ErrorMessages.GENERIC_ERROR
+            )
         
     @staticmethod
     def get_all_production_lines() -> list[tuple]:
@@ -91,6 +111,7 @@ class ProductionLineModel:
         Retrieves all production lines from the database.
         Returns:
             list[tuple]: A list of tuples representing production lines.
+                Returns empty list if error occurs.
         """
 
         try:
@@ -112,21 +133,29 @@ class ProductionLineModel:
             ]
         
         except DatabaseError as e:
-            logger.error(f"Error retrieving production lines: {e}")
+            ErrorMessages.log_and_mask_error(
+                error=e,
+                context="retrieving all production lines",
+                user_message=ErrorMessages.DATABASE_ERROR
+            )
             return []
         
         except Exception as e:
-            logger.error(f"Unexpected error retrieving production lines: {e}")
+            ErrorMessages.log_and_mask_error(
+                error=e,
+                context="retrieving all production lines",
+                user_message=ErrorMessages.GENERIC_ERROR
+            )
             return []
         
     @staticmethod
-    def search_by_id(line_id: int) -> list[tuple] | None:
+    def search_by_id(line_id: int) -> list[tuple]:
         """
         Searches for a production line by its ID.
         Args:
             line_id (int): The ID of the production line to search for.
         Returns:
-            tuple | None: A tuple representing the production line if found, None otherwise.
+            list[tuple]: A list containing the production line tuple if found, empty list otherwise.
         """
 
         try:
@@ -138,9 +167,6 @@ class ProductionLineModel:
                 """,
                 {"id": line_id}
             )
-            
-            if rows is None:
-                return None
 
             return [
                 (
@@ -152,13 +178,20 @@ class ProductionLineModel:
                 for row in rows
             ]
             
-        
         except DatabaseError as e:
-            logger.error(f"Error searching for production line {line_id}: {e}")
+            ErrorMessages.log_and_mask_error(
+                error=e,
+                context=f"searching production line by ID {line_id}",
+                user_message=ErrorMessages.DATABASE_ERROR
+            )
             return []
         
         except Exception as e:
-            logger.error(f"Unexpected error searching for production line {line_id}: {e}")
+            ErrorMessages.log_and_mask_error(
+                error=e,
+                context=f"searching production line by ID {line_id}",
+                user_message=ErrorMessages.GENERIC_ERROR
+            )
             return []
         
     @staticmethod
@@ -169,6 +202,7 @@ class ProductionLineModel:
             line_name (str): The name of the production line to search for.  
         Returns:
             list[tuple]: A list of tuples representing matching production lines.
+                Returns empty list if not found or error occurs.
         """
 
         try:
@@ -193,9 +227,17 @@ class ProductionLineModel:
             ]
         
         except DatabaseError as e:
-            logger.error(f"Error searching production lines by name '{line_name}': {e}")
+            ErrorMessages.log_and_mask_error(
+                error=e,
+                context=f"searching production lines by name '{line_name}'",
+                user_message=ErrorMessages.DATABASE_ERROR
+            )
             return []
         
         except Exception as e:
-            logger.error(f"Unexpected error searching production lines by name '{line_name}': {e}")
+            ErrorMessages.log_and_mask_error(
+                error=e,
+                context=f"searching production lines by name '{line_name}'",
+                user_message=ErrorMessages.GENERIC_ERROR
+            )
             return []

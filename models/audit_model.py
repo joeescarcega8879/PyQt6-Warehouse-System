@@ -1,15 +1,17 @@
 import logging
 from database.query_helper import QueryHelper, DatabaseError
+from common.error_messages import ErrorMessages
 
 logger = logging.getLogger(__name__)
 
 class AuditModel:
     """
     Model for handling audit logs in the database.
+    Handles secure error logging and provides generic error messages to users.
     """
 
     @staticmethod
-    def insert_log(user_id: int, action: str, success: bool, entity: str | None = None, entity_id: int | None = None, meta: dict | None = None) -> bool:
+    def insert_log(user_id: int, action: str, success: bool, entity: str | None = None, entity_id: int | None = None, meta: dict | None = None) -> tuple[bool, str | None]:
         """
         Inserts a new audit log entry into the database.
         
@@ -22,7 +24,9 @@ class AuditModel:
             meta (dict | None): Additional metadata related to the action (optional).
         
         Returns:
-            bool: True if the log entry was added successfully, False otherwise.
+            tuple[bool, str | None]: (success, error_message)
+                - success: True if the log entry was added successfully, False otherwise.
+                - error_message: None if successful, generic error message if failed.
         """
         meta_json = QueryHelper._to_json_(meta) if meta is not None else None
 
@@ -43,10 +47,21 @@ class AuditModel:
             )
 
             if result.get("rows_affected", 0) != 1:
-                return False, "Failed to insert audit log entry."
+                logger.warning(f"Failed to insert audit log for user {user_id}, action: {action}")
+                return False, ErrorMessages.SAVE_FAILED
             
-            return True
+            return True, None
+            
         except DatabaseError as e:
-            logger.error(f"Error inserting audit log: {e}")
-            return False
+            return False, ErrorMessages.log_and_mask_error(
+                error=e,
+                context=f"inserting audit log for user {user_id}, action: {action}",
+                user_message=ErrorMessages.DATABASE_ERROR
+            )
+        except Exception as e:
+            return False, ErrorMessages.log_and_mask_error(
+                error=e,
+                context=f"inserting audit log for user {user_id}, action: {action}",
+                user_message=ErrorMessages.GENERIC_ERROR
+            )
         

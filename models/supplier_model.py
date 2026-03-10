@@ -1,8 +1,12 @@
 from config.logger_config import logger
 from database.query_helper import QueryHelper, DatabaseError
+from common.error_messages import ErrorMessages
 
 class SupplierModel:
-    """Model class for managing suppliers in the database."""
+    """
+    Model class for managing suppliers in the database.
+    Handles secure error logging and provides generic error messages to users.
+    """
 
     @staticmethod
     def add_supplier(
@@ -28,8 +32,10 @@ class SupplierModel:
             is_active (bool): Whether the supplier is active or not. Defaults to True.
     
         returns:
-            tuple[bool, str | None, int | None]: A tuple containing a boolean indicating success,
-            an optional error message, and the ID of the created supplier if successful.
+            tuple[bool, str | None, int | None]: (success, error_message, supplier_id)
+                - success: True if supplier was created successfully
+                - error_message: None if successful, generic error message if failed
+                - supplier_id: ID of created supplier if successful, None otherwise
        """
 
        try:
@@ -72,11 +78,19 @@ class SupplierModel:
            return True, None, int(supplier_id) if supplier_id is not None else None
        
        except DatabaseError as e:
-            logger.error(f"Error adding supplier: {e}")
-            return False, str(e), None
+            error_msg = ErrorMessages.log_and_mask_error(
+                error=e,
+                context=f"adding supplier '{supplier_name}'",
+                user_message=ErrorMessages.DATABASE_ERROR
+            )
+            return False, error_msg, None
        except Exception as e:
-            logger.error(f"Unexpected error adding supplier: {e}")
-            return False, str(e), None
+            error_msg = ErrorMessages.log_and_mask_error(
+                error=e,
+                context=f"adding supplier '{supplier_name}'",
+                user_message=ErrorMessages.GENERIC_ERROR
+            )
+            return False, error_msg, None
      
     @staticmethod
     def update_supplier(
@@ -102,7 +116,9 @@ class SupplierModel:
             is_active: Updated active status of the supplier.
 
         Returns:
-            (success, error_message)
+            tuple[bool, str | None]: (success, error_message)
+                - success: True if supplier was updated successfully
+                - error_message: None if successful, generic error message if failed
         """
         try:
           result = QueryHelper.execute(
@@ -130,15 +146,22 @@ class SupplierModel:
                     },
           )
           if result.get("rows_affected", 0) != 1:
-               return False, "Supplier not found or no changes made."
+               logger.warning(f"Supplier not found for update: ID {supplier_id}")
+               return False, ErrorMessages.NOT_FOUND
           return True, None
      
         except DatabaseError as e:
-            logger.error(f"Error updating supplier: {e}")
-            return False, str(e)
+            return False, ErrorMessages.log_and_mask_error(
+                error=e,
+                context=f"updating supplier ID {supplier_id}",
+                user_message=ErrorMessages.DATABASE_ERROR
+            )
         except Exception as e:
-            logger.error(f"Unexpected error updating supplier: {e}")
-            return False, str(e)
+            return False, ErrorMessages.log_and_mask_error(
+                error=e,
+                context=f"updating supplier ID {supplier_id}",
+                user_message=ErrorMessages.GENERIC_ERROR
+            )
        
     @staticmethod
     def get_all_suppliers() -> list[tuple]:
@@ -146,7 +169,8 @@ class SupplierModel:
         Retrieves all suppliers from the database.
 
         Returns:
-            A list of tuples containing supplier information.
+            list[tuple]: A list of tuples containing supplier information.
+                Returns empty list if error occurs.
         """
         
         try:
@@ -173,11 +197,19 @@ class SupplierModel:
             ]
         
         except DatabaseError as e:
-            logger.error(f"Error retrieving suppliers: {e}")
+            ErrorMessages.log_and_mask_error(
+                error=e,
+                context="retrieving all suppliers",
+                user_message=ErrorMessages.DATABASE_ERROR
+            )
             return []
         
         except Exception as e:
-            logger.error(f"Unexpected error retrieving suppliers: {e}")
+            ErrorMessages.log_and_mask_error(
+                error=e,
+                context="retrieving all suppliers",
+                user_message=ErrorMessages.GENERIC_ERROR
+            )
             return []
        
     @staticmethod
@@ -187,7 +219,7 @@ class SupplierModel:
         Args:
             supplier_id: The ID of the supplier to search for.
         Returns:
-            A list containing a tuple with supplier information if found, otherwise an empty list.
+            list[tuple]: A list containing a tuple with supplier information if found, otherwise an empty list.
         """
     
         try:
@@ -214,10 +246,18 @@ class SupplierModel:
                 ]
             return []
         except DatabaseError as e:
-            logger.error(f"Error searching for supplier by ID: {e}")
+            ErrorMessages.log_and_mask_error(
+                error=e,
+                context=f"searching supplier by ID {supplier_id}",
+                user_message=ErrorMessages.DATABASE_ERROR
+            )
             return []
         except Exception as e:
-            logger.error(f"Unexpected error searching for supplier by ID: {e}")
+            ErrorMessages.log_and_mask_error(
+                error=e,
+                context=f"searching supplier by ID {supplier_id}",
+                user_message=ErrorMessages.GENERIC_ERROR
+            )
             return []
      
     @staticmethod
@@ -227,7 +267,8 @@ class SupplierModel:
         Args:
             supplier_name: The name (or partial name) of the supplier to search for.
         Returns:
-            A list of tuples containing supplier information for all matching suppliers.         
+            list[tuple]: A list of tuples containing supplier information for all matching suppliers.
+                Returns empty list if not found or error occurs.
         """
         
         try:
@@ -255,8 +296,16 @@ class SupplierModel:
                 for row in rows
             ]
         except DatabaseError as e:
-            logger.error(f"Error searching for supplier by name: {e}")
+            ErrorMessages.log_and_mask_error(
+                error=e,
+                context=f"searching supplier by name '{supplier_name}'",
+                user_message=ErrorMessages.DATABASE_ERROR
+            )
             return []
         except Exception as e:
-            logger.error(f"Unexpected error searching for supplier by name: {e}")
+            ErrorMessages.log_and_mask_error(
+                error=e,
+                context=f"searching supplier by name '{supplier_name}'",
+                user_message=ErrorMessages.GENERIC_ERROR
+            )
             return []

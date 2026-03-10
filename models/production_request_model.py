@@ -1,5 +1,5 @@
-from config.logger_config import logger
 from database.query_helper import QueryHelper, DatabaseError
+from common.error_messages import ErrorMessages
 
 class ProductionRequestModel:
     """
@@ -64,13 +64,21 @@ class ProductionRequestModel:
         
         except DatabaseError as e:
             QueryHelper.rollback()
-            logger.error(f"Error creating production request: {e}")
-            return False, str(e), None
+            error_msg = ErrorMessages.log_and_mask_error(
+                error=e,
+                context="creating production request",
+                user_message=ErrorMessages.SAVE_FAILED
+            )
+            return False, error_msg, None
         
         except Exception as e:
             QueryHelper.rollback()
-            logger.error(f"Unexpected error creating production request: {e}")
-            return False, str(e), None
+            error_msg = ErrorMessages.log_and_mask_error(
+                error=e,
+                context="creating production request (unexpected error)",
+                user_message=ErrorMessages.GENERIC_ERROR
+            )
+            return False, error_msg, None
     
     @staticmethod
     def update_status_request(
@@ -109,12 +117,18 @@ class ProductionRequestModel:
             return True, None
         
         except DatabaseError as e:
-            logger.error(f"Error updating production request status: {e}")
-            return False, str(e)
+            return False, ErrorMessages.log_and_mask_error(
+                error=e,
+                context="updating production request status",
+                user_message=ErrorMessages.UPDATE_FAILED
+            )
         
         except Exception as e:
-            logger.error(f"Unexpected error updating production request status: {e}")
-            return False, str(e)
+            return False, ErrorMessages.log_and_mask_error(
+                error=e,
+                context="updating production request status (unexpected error)",
+                user_message=ErrorMessages.GENERIC_ERROR
+            )
 
     @staticmethod
     def deactivate_request(request_id: int) -> tuple[bool, str | None]:
@@ -141,12 +155,18 @@ class ProductionRequestModel:
             return True, None
         
         except DatabaseError as e:
-            logger.error(f"Error deactivating production request: {e}")
-            return False, str(e)
+            return False, ErrorMessages.log_and_mask_error(
+                error=e,
+                context="deactivating production request",
+                user_message=ErrorMessages.DELETE_FAILED
+            )
         
         except Exception as e:
-            logger.error(f"Unexpected error deactivating production request: {e}")
-            return False, str(e) 
+            return False, ErrorMessages.log_and_mask_error(
+                error=e,
+                context="deactivating production request (unexpected error)",
+                user_message=ErrorMessages.GENERIC_ERROR
+            ) 
         
     @staticmethod
     def get_all_requests() -> list[tuple]:
@@ -199,10 +219,18 @@ class ProductionRequestModel:
                 for row in rows
             ]
         except DatabaseError as e:
-            logger.error(f"Error retrieving production requests: {e}")
+            ErrorMessages.log_and_mask_error(
+                error=e,
+                context="retrieving all production requests",
+                user_message=ErrorMessages.DATABASE_ERROR
+            )
             return []
         except Exception as e:
-            logger.error(f"Unexpected error retrieving production requests: {e}")
+            ErrorMessages.log_and_mask_error(
+                error=e,
+                context="retrieving all production requests (unexpected error)",
+                user_message=ErrorMessages.GENERIC_ERROR
+            )
             return []
         
     @staticmethod
@@ -261,8 +289,16 @@ class ProductionRequestModel:
             return []
         
         except DatabaseError as e:
-            logger.error(f"Error retrieving production request by ID: {e}")
+            ErrorMessages.log_and_mask_error(
+                error=e,
+                context=f"retrieving production request by ID {request_id}",
+                user_message=ErrorMessages.DATABASE_ERROR
+            )
             return []
         except Exception as e:
-            logger.error(f"Unexpected error retrieving production request by ID: {e}")
+            ErrorMessages.log_and_mask_error(
+                error=e,
+                context=f"retrieving production request by ID {request_id} (unexpected error)",
+                user_message=ErrorMessages.GENERIC_ERROR
+            )
             return []
