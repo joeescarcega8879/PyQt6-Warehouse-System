@@ -150,16 +150,40 @@ class MainApplication(QObject):
 
         change_password_view.exec()
 
-    def open_generic_form(self, on_material_selected = None) -> None:
-        self.generic_view = GenericView()
+    def open_generic_form(self, entity_type: str = "material", on_item_selected=None) -> None:
+        """
+        Opens the generic form to select an entity.
+        
+        Args:
+            entity_type: Entity type to display. Valid values:
+                        - "material": Select materials
+                        - "supplier": Select suppliers
+                        - "production_line": Select production lines
+            on_item_selected: Callback executed when an item is selected.
+                             Receives a dict with the selected item data.
+        
+        Examples:
+            # Select a material
+            app.open_generic_form("material", on_item_selected=lambda item: print(item))
+            
+            # Select a supplier
+            app.open_generic_form("supplier", on_item_selected=lambda item: print(item))
+            
+            # Select a production line
+            app.open_generic_form("production_line", on_item_selected=lambda item: print(item))
+        """
+        self.generic_view = GenericView(entity_type=entity_type)
         
         self.generic_presenter = GenericPresenter(
-            view=self.generic_view, 
+            view=self.generic_view,
+            entity_type=entity_type,
             status_handler=self.status_bar_controller.show_message
         )
 
-        if on_material_selected:
-            self.generic_view.material_selected.connect(on_material_selected)
+        if on_item_selected:
+            self.generic_view.item_selected.connect(on_item_selected)
+            # Also connect legacy signal for compatibility
+            self.generic_view.material_selected.connect(on_item_selected)
 
         self.generic_view.exec()
 
