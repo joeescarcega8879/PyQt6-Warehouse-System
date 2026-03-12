@@ -1,15 +1,16 @@
 from __future__ import annotations
 
-from config.logger_config import logger
-from database.query_helper import QueryHelper, DatabaseError
-from common.error_messages import ErrorMessages
+from models.base_model import BaseModel
 from PyQt6.QtCore import QDateTime
 
-class SupplierReceiptModel:
+
+class SupplierReceiptModel(BaseModel):
     """
     Model class for managing supplier receipts in the database.
     Handles secure error logging and provides generic error messages to users.
     """
+
+    ENTITY_NAME = "supplier receipt"
 
     @staticmethod
     def _format_timestamp(timestamp) -> str:
@@ -23,17 +24,46 @@ class SupplierReceiptModel:
         """
         if timestamp is None:
             return ""
-        
+
         # If it's a QDateTime object from PyQt6
         if isinstance(timestamp, QDateTime):
             return timestamp.toString("yyyy-MM-dd HH:mm:ss")
-        
+
         # If it's already a string, return as-is
         if isinstance(timestamp, str):
             return timestamp
-        
+
         # For other types (datetime, etc), convert to string
         return str(timestamp)
+
+    @staticmethod
+    def _map_row(row: dict) -> tuple:
+        return (
+            row["receipt_id"],
+            row["material_id"],
+            row["supplier_id"],
+            row["supplier_name"] or "Unknown Supplier",
+            row["quantity_received"],
+            SupplierReceiptModel._format_timestamp(row["receipt_timestamp"]),
+            row["notes"],
+            row["created_by"],
+        )
+
+    _RECEIPT_COLUMNS = """
+        sr.receipt_id,
+        sr.material_id,
+        sr.supplier_id,
+        s.supplier_name,
+        sr.quantity_received,
+        sr.receipt_timestamp,
+        sr.notes,
+        sr.created_by
+    """
+
+    _RECEIPT_FROM = """
+        FROM supplier_receipts sr
+        LEFT JOIN suppliers s ON sr.supplier_id = s.supplier_id
+    """
 
     @staticmethod
     def add_receipt(
@@ -50,7 +80,6 @@ class SupplierReceiptModel:
             supplier_id: Supplier id (foreign key to suppliers table).
             quantity_received: Quantity received.
             created_by: User ID who created the receipt.
-            receipt_timestamp: Timestamp value (or None to default to NOW()).
             notes: Optional notes.
 
         Returns:
@@ -59,10 +88,8 @@ class SupplierReceiptModel:
                 - error_message: None if successful, generic error message if failed
                 - receipt_id: ID of created receipt if successful, None otherwise
         """
-
-        try:
-            result = QueryHelper.execute(
-                """
+        return BaseModel._execute_insert(
+            sql="""
                 INSERT INTO supplier_receipts (
                     material_id,
                     supplier_id,
@@ -78,33 +105,16 @@ class SupplierReceiptModel:
                     :created_by
                 )
                 """,
-                {
-                    "material_id": material_id,
-                    "supplier_id": supplier_id,
-                    "quantity_received": quantity_received,
-                    "notes": notes,
-                    "created_by": created_by,
-                },
-            )
-
-            receipt_id = result.get("last_insert_id")
-            return True, None, int(receipt_id) if receipt_id is not None else None
-
-        except DatabaseError as e:
-            error_msg = ErrorMessages.log_and_mask_error(
-                error=e,
-                context=f"adding supplier receipt for material ID {material_id}",
-                user_message=ErrorMessages.DATABASE_ERROR
-            )
-            return False, error_msg, None
-
-        except Exception as e:
-            error_msg = ErrorMessages.log_and_mask_error(
-                error=e,
-                context=f"adding supplier receipt for material ID {material_id}",
-                user_message=ErrorMessages.GENERIC_ERROR
-            )
-            return False, error_msg, None
+            params={
+                "material_id": material_id,
+                "supplier_id": supplier_id,
+                "quantity_received": quantity_received,
+                "notes": notes,
+                "created_by": created_by,
+            },
+            entity_name=SupplierReceiptModel.ENTITY_NAME,
+            context=f"adding supplier receipt for material ID {material_id}",
+        )
 
     @staticmethod
     def update_receipt(
@@ -130,10 +140,8 @@ class SupplierReceiptModel:
                 - success: True if receipt was updated successfully
                 - error_message: None if successful, generic error message if failed
         """
-
-        try:
-            result = QueryHelper.execute(
-                """
+        return BaseModel._execute_update(
+            sql="""
                 UPDATE supplier_receipts
                 SET material_id = :material_id,
                     supplier_id = :supplier_id,
@@ -141,34 +149,17 @@ class SupplierReceiptModel:
                     notes = :notes
                 WHERE receipt_id = :receipt_id
                 """,
-                {
-                    "receipt_id": receipt_id,
-                    "material_id": material_id,
-                    "supplier_id": supplier_id,
-                    "quantity_received": quantity_received,
-                    "notes": notes,
-                },
-            )
-
-            if result.get("rows_affected", 0) != 1:
-                logger.warning(f"Supplier receipt not found for update: ID {receipt_id}")
-                return False, ErrorMessages.NOT_FOUND
-
-            return True, None
-
-        except DatabaseError as e:
-            return False, ErrorMessages.log_and_mask_error(
-                error=e,
-                context=f"updating supplier receipt ID {receipt_id}",
-                user_message=ErrorMessages.DATABASE_ERROR
-            )
-
-        except Exception as e:
-            return False, ErrorMessages.log_and_mask_error(
-                error=e,
-                context=f"updating supplier receipt ID {receipt_id}",
-                user_message=ErrorMessages.GENERIC_ERROR
-            )
+            params={
+                "receipt_id": receipt_id,
+                "material_id": material_id,
+                "supplier_id": supplier_id,
+                "quantity_received": quantity_received,
+                "notes": notes,
+            },
+            entity_name=SupplierReceiptModel.ENTITY_NAME,
+            entity_id=receipt_id,
+            context=f"updating supplier receipt ID {receipt_id}",
+        )
 
     @staticmethod
     def delete_receipt(receipt_id: int) -> tuple[bool, str | None]:
@@ -179,35 +170,16 @@ class SupplierReceiptModel:
                 - success: True if receipt was deleted successfully
                 - error_message: None if successful, generic error message if failed
         """
-
-        try:
-            result = QueryHelper.execute(
-                """
+        return BaseModel._execute_delete(
+            sql="""
                 DELETE FROM supplier_receipts
                 WHERE receipt_id = :receipt_id
                 """,
-                {"receipt_id": receipt_id},
-            )
-
-            if result.get("rows_affected", 0) != 1:
-                logger.warning(f"Supplier receipt not found for deletion: ID {receipt_id}")
-                return False, ErrorMessages.NOT_FOUND
-
-            return True, None
-
-        except DatabaseError as e:
-            return False, ErrorMessages.log_and_mask_error(
-                error=e,
-                context=f"deleting supplier receipt ID {receipt_id}",
-                user_message=ErrorMessages.DATABASE_ERROR
-            )
-
-        except Exception as e:
-            return False, ErrorMessages.log_and_mask_error(
-                error=e,
-                context=f"deleting supplier receipt ID {receipt_id}",
-                user_message=ErrorMessages.GENERIC_ERROR
-            )
+            params={"receipt_id": receipt_id},
+            entity_name=SupplierReceiptModel.ENTITY_NAME,
+            entity_id=receipt_id,
+            context=f"deleting supplier receipt ID {receipt_id}",
+        )
 
     @staticmethod
     def get_all_receipts() -> list[tuple]:
@@ -218,54 +190,16 @@ class SupplierReceiptModel:
                 supplier_name, quantity_received, receipt_timestamp, notes, created_by).
                 Returns empty list if error occurs.
         """
-
-        try:
-            rows = QueryHelper.fetch_all(
-                """
-                SELECT 
-                    sr.receipt_id, 
-                    sr.material_id, 
-                    sr.supplier_id,
-                    s.supplier_name,
-                    sr.quantity_received, 
-                    sr.receipt_timestamp, 
-                    sr.notes, 
-                    sr.created_by
-                FROM supplier_receipts sr
-                LEFT JOIN suppliers s ON sr.supplier_id = s.supplier_id
+        rows = BaseModel._fetch_all_safe(
+            sql=f"""
+                SELECT {SupplierReceiptModel._RECEIPT_COLUMNS}
+                {SupplierReceiptModel._RECEIPT_FROM}
                 ORDER BY sr.receipt_id DESC
-                """
-            )
-
-            return [
-                (
-                    row["receipt_id"],
-                    row["material_id"],
-                    row["supplier_id"],
-                    row["supplier_name"] or "Unknown Supplier",  # Handle NULL supplier_name
-                    row["quantity_received"],
-                    SupplierReceiptModel._format_timestamp(row["receipt_timestamp"]),
-                    row["notes"],
-                    row["created_by"],
-                )
-                for row in rows
-            ]
-
-        except DatabaseError as e:
-            ErrorMessages.log_and_mask_error(
-                error=e,
-                context="retrieving all supplier receipts",
-                user_message=ErrorMessages.DATABASE_ERROR
-            )
-            return []
-
-        except Exception as e:
-            ErrorMessages.log_and_mask_error(
-                error=e,
-                context="retrieving all supplier receipts",
-                user_message=ErrorMessages.GENERIC_ERROR
-            )
-            return []
+                """,
+            params=None,
+            context="retrieving all supplier receipts",
+        )
+        return [SupplierReceiptModel._map_row(row) for row in rows]
 
     @staticmethod
     def search_by_id(receipt_id: int) -> tuple | None:
@@ -278,55 +212,16 @@ class SupplierReceiptModel:
             A tuple containing (receipt_id, material_id, supplier_id, supplier_name,
             quantity_received, receipt_timestamp, notes, created_by) if found, None otherwise.
         """
-
-        try:
-            row = QueryHelper.fetch_one(
-                """
-                SELECT 
-                    sr.receipt_id, 
-                    sr.material_id, 
-                    sr.supplier_id,
-                    s.supplier_name,
-                    sr.quantity_received, 
-                    sr.receipt_timestamp, 
-                    sr.notes, 
-                    sr.created_by
-                FROM supplier_receipts sr
-                LEFT JOIN suppliers s ON sr.supplier_id = s.supplier_id
+        row = BaseModel._fetch_one_safe(
+            sql=f"""
+                SELECT {SupplierReceiptModel._RECEIPT_COLUMNS}
+                {SupplierReceiptModel._RECEIPT_FROM}
                 WHERE sr.receipt_id = :receipt_id
                 """,
-                {"receipt_id": receipt_id},
-            )
-
-            if row:
-                return (
-                    row["receipt_id"],
-                    row["material_id"],
-                    row["supplier_id"],
-                    row["supplier_name"] or "Unknown Supplier",  # Handle NULL supplier_name
-                    row["quantity_received"],
-                    SupplierReceiptModel._format_timestamp(row["receipt_timestamp"]),
-                    row["notes"],
-                    row["created_by"],
-                )
-            
-            return None
-
-        except DatabaseError as e:
-            ErrorMessages.log_and_mask_error(
-                error=e,
-                context=f"searching supplier receipt by ID {receipt_id}",
-                user_message=ErrorMessages.DATABASE_ERROR
-            )
-            return None
-
-        except Exception as e:
-            ErrorMessages.log_and_mask_error(
-                error=e,
-                context=f"searching supplier receipt by ID {receipt_id}",
-                user_message=ErrorMessages.GENERIC_ERROR
-            )
-            return None
+            params={"receipt_id": receipt_id},
+            context=f"searching supplier receipt by ID {receipt_id}",
+        )
+        return SupplierReceiptModel._map_row(row) if row else None
 
     @staticmethod
     def search_by_supplier_name(supplier_name: str) -> list[tuple]:
@@ -340,53 +235,14 @@ class SupplierReceiptModel:
                 supplier_name, quantity_received, receipt_timestamp, notes, created_by).
                 Returns empty list if not found or error occurs.
         """
-
-        try:
-            rows = QueryHelper.fetch_all(
-                """
-                SELECT 
-                    sr.receipt_id, 
-                    sr.material_id, 
-                    sr.supplier_id,
-                    s.supplier_name,
-                    sr.quantity_received, 
-                    sr.receipt_timestamp, 
-                    sr.notes, 
-                    sr.created_by
-                FROM supplier_receipts sr
-                LEFT JOIN suppliers s ON sr.supplier_id = s.supplier_id
+        rows = BaseModel._fetch_all_safe(
+            sql=f"""
+                SELECT {SupplierReceiptModel._RECEIPT_COLUMNS}
+                {SupplierReceiptModel._RECEIPT_FROM}
                 WHERE s.supplier_name ILIKE :supplier_name
                 ORDER BY sr.receipt_id DESC
                 """,
-                {"supplier_name": f"%{supplier_name}%"},
-            )
-
-            return [
-                (
-                    row["receipt_id"],
-                    row["material_id"],
-                    row["supplier_id"],
-                    row["supplier_name"] or "Unknown Supplier",  # Handle NULL supplier_name
-                    row["quantity_received"],
-                    SupplierReceiptModel._format_timestamp(row["receipt_timestamp"]),
-                    row["notes"],
-                    row["created_by"],
-                )
-                for row in rows
-            ]
-
-        except DatabaseError as e:
-            ErrorMessages.log_and_mask_error(
-                error=e,
-                context=f"searching supplier receipts by supplier name '{supplier_name}'",
-                user_message=ErrorMessages.DATABASE_ERROR
-            )
-            return []
-
-        except Exception as e:
-            ErrorMessages.log_and_mask_error(
-                error=e,
-                context=f"searching supplier receipts by supplier name '{supplier_name}'",
-                user_message=ErrorMessages.GENERIC_ERROR
-            )
-            return []
+            params={"supplier_name": f"%{supplier_name}%"},
+            context=f"searching supplier receipts by supplier name '{supplier_name}'",
+        )
+        return [SupplierReceiptModel._map_row(row) for row in rows]

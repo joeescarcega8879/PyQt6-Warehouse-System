@@ -66,7 +66,7 @@ class MainApplication(QObject):
         
         self.session_manager.start()
 
-        self.main_view.showMaximized()
+        self.main_view.show()
         self.login_view.close()
 
     def eventFilter(self, obj, event):

@@ -1,10 +1,8 @@
-import logging
-from database.query_helper import QueryHelper, DatabaseError
-from common.error_messages import ErrorMessages
+from models.base_model import BaseModel
+from database.query_helper import QueryHelper
 
-logger = logging.getLogger(__name__)
 
-class AuditModel:
+class AuditModel(BaseModel):
     """
     Model for handling audit logs in the database.
     Handles secure error logging and provides generic error messages to users.
@@ -30,38 +28,20 @@ class AuditModel:
         """
         meta_json = QueryHelper._to_json_(meta) if meta is not None else None
 
-        try:
-            result = QueryHelper.execute(
-                """
+        ok, error, _ = BaseModel._execute_insert(
+            sql="""
                 INSERT INTO audit_log (user_id, action, success, entity, entity_id, meta)
                 VALUES (:user_id, :action, :success, :entity, :entity_id, :meta)
                 """,
-                {
-                    "user_id": user_id,
-                    "action": action,
-                    "success": success,
-                    "entity": entity,
-                    "entity_id": entity_id,
-                    "meta":  meta_json
-                },
-            )
-
-            if result.get("rows_affected", 0) != 1:
-                logger.warning(f"Failed to insert audit log for user {user_id}, action: {action}")
-                return False, ErrorMessages.SAVE_FAILED
-            
-            return True, None
-            
-        except DatabaseError as e:
-            return False, ErrorMessages.log_and_mask_error(
-                error=e,
-                context=f"inserting audit log for user {user_id}, action: {action}",
-                user_message=ErrorMessages.DATABASE_ERROR
-            )
-        except Exception as e:
-            return False, ErrorMessages.log_and_mask_error(
-                error=e,
-                context=f"inserting audit log for user {user_id}, action: {action}",
-                user_message=ErrorMessages.GENERIC_ERROR
-            )
-        
+            params={
+                "user_id": user_id,
+                "action": action,
+                "success": success,
+                "entity": entity,
+                "entity_id": entity_id,
+                "meta": meta_json,
+            },
+            entity_name="audit log",
+            context=f"inserting audit log for user {user_id}, action: {action}",
+        )
+        return ok, error

@@ -1,17 +1,59 @@
+from models.base_model import BaseModel
 from database.query_helper import QueryHelper, DatabaseError
 from common.error_messages import ErrorMessages
 
-class ProductionRequestModel:
+
+class ProductionRequestModel(BaseModel):
     """
     Model class for managing production requests in the database.
     """
 
+    ENTITY_NAME = "production request"
+
+    _REQUEST_COLUMNS = """
+        pr.request_id,
+        pr.line_id,
+        pl.line_name,
+        pr.status,
+        pr.requested_at,
+        pr.requested_by,
+        u_req.username AS requested_by_name,
+        pr.approved_by,
+        u_app.username AS approved_by_name,
+        pr.approved_at,
+        pr.is_active
+    """
+
+    _REQUEST_FROM = """
+        FROM production_requests pr
+        JOIN production_lines pl ON pl.line_id = pr.line_id
+        JOIN users u_req ON u_req.user_id = pr.requested_by
+        LEFT JOIN users u_app ON u_app.user_id = pr.approved_by
+    """
+
+    @staticmethod
+    def _map_row(row: dict) -> tuple:
+        return (
+            row["request_id"],
+            row["line_id"],
+            row["line_name"],
+            row["status"],
+            row["requested_at"],
+            row["requested_by"],
+            row["requested_by_name"],
+            row["approved_by"],
+            row["approved_by_name"],
+            row["approved_at"],
+            row["is_active"],
+        )
+
     @staticmethod
     def create_request(
-        line_id: int, 
-        requested_by: int, 
-        status: str, 
-        items: list[dict]) -> tuple[bool, str | None, int | None]:
+        line_id: int,
+        requested_by: int,
+        status: str,
+        items: list[dict],
+    ) -> tuple[bool, str | None, int | None]:
         """
         Creates a new production request in the database.
         Args:
@@ -23,7 +65,6 @@ class ProductionRequestModel:
             tuple[bool, str | None, int | None]: A tuple containing a boolean indicating success,
             an optional error message, and the ID of the created production request if successful.
         """
-
         try:
             QueryHelper.begin_transaction()
 
@@ -33,18 +74,13 @@ class ProductionRequestModel:
                 VALUES(:line_id, :requested_by, :status, NOW(), NULL, NULL, TRUE)
                 RETURNING request_id
                 """,
-                {
-                    "line_id": line_id,
-                    "requested_by": requested_by,
-                    "status": status
-                }
+                {"line_id": line_id, "requested_by": requested_by, "status": status},
             )
 
             request_id = result.get("last_insert_id")
             if not request_id:
                 raise DatabaseError("Failed to retrieve the new request ID.")
-            
-            
+
             for item in items:
                 QueryHelper.execute(
                     """
@@ -55,36 +91,35 @@ class ProductionRequestModel:
                         "request_id": request_id,
                         "material_id": item["material_id"],
                         "quantity": item["quantity"],
-                        "unit": item["unit"]
-                    }
+                        "unit": item["unit"],
+                    },
                 )
-            
+
             QueryHelper.commit()
             return True, None, request_id
-        
+
         except DatabaseError as e:
             QueryHelper.rollback()
-            error_msg = ErrorMessages.log_and_mask_error(
+            return False, ErrorMessages.log_and_mask_error(
                 error=e,
                 context="creating production request",
-                user_message=ErrorMessages.SAVE_FAILED
-            )
-            return False, error_msg, None
-        
+                user_message=ErrorMessages.SAVE_FAILED,
+            ), None
+
         except Exception as e:
             QueryHelper.rollback()
-            error_msg = ErrorMessages.log_and_mask_error(
+            return False, ErrorMessages.log_and_mask_error(
                 error=e,
                 context="creating production request (unexpected error)",
-                user_message=ErrorMessages.GENERIC_ERROR
-            )
-            return False, error_msg, None
-    
+                user_message=ErrorMessages.GENERIC_ERROR,
+            ), None
+
     @staticmethod
     def update_status_request(
-        request_id: int, 
-        status: str, 
-        approved_by: int | None = None) -> tuple[bool, str | None]:
+        request_id: int,
+        status: str,
+        approved_by: int | None = None,
+    ) -> tuple[bool, str | None]:
         """
         Updates the status of an existing production request.
         Args:
@@ -94,41 +129,29 @@ class ProductionRequestModel:
         Returns:
             tuple[bool, str | None]: A tuple containing a boolean indicating success and an optional error message.
         """
-
-        try:
+        def operation():
             QueryHelper.execute(
                 """
                 UPDATE production_requests
                 SET status = :status,
-                   approved_by = :approved_by,
-                   approved_at = CASE
-                       WHEN :approved_by IS NOT NULL THEN NOW()
-                       ELSE NULL
-                   END
+                    approved_by = :approved_by,
+                    approved_at = CASE
+                        WHEN :approved_by IS NOT NULL THEN NOW()
+                        ELSE NULL
+                    END
                 WHERE request_id = :request_id
                 """,
-                {
-                    "status": status,
-                    "approved_by": approved_by,
-                    "request_id": request_id
-                }
+                {"status": status, "approved_by": approved_by, "request_id": request_id},
             )
+            return True
 
-            return True, None
-        
-        except DatabaseError as e:
-            return False, ErrorMessages.log_and_mask_error(
-                error=e,
-                context="updating production request status",
-                user_message=ErrorMessages.UPDATE_FAILED
-            )
-        
-        except Exception as e:
-            return False, ErrorMessages.log_and_mask_error(
-                error=e,
-                context="updating production request status (unexpected error)",
-                user_message=ErrorMessages.GENERIC_ERROR
-            )
+        result, error = BaseModel._execute_with_error_handling(
+            operation=operation,
+            context="updating production request status",
+            default_return=False,
+            entity_name=ProductionRequestModel.ENTITY_NAME,
+        )
+        return result, error
 
     @staticmethod
     def deactivate_request(request_id: int) -> tuple[bool, str | None]:
@@ -139,35 +162,25 @@ class ProductionRequestModel:
         Returns:
             tuple[bool, str | None]: A tuple containing a boolean indicating success and an optional error message.
         """
-
-        try:
+        def operation():
             QueryHelper.execute(
                 """
                 UPDATE production_requests
                 SET is_active = FALSE
                 WHERE request_id = :request_id
                 """,
-                {
-                    "request_id": request_id
-                }
+                {"request_id": request_id},
             )
+            return True
 
-            return True, None
-        
-        except DatabaseError as e:
-            return False, ErrorMessages.log_and_mask_error(
-                error=e,
-                context="deactivating production request",
-                user_message=ErrorMessages.DELETE_FAILED
-            )
-        
-        except Exception as e:
-            return False, ErrorMessages.log_and_mask_error(
-                error=e,
-                context="deactivating production request (unexpected error)",
-                user_message=ErrorMessages.GENERIC_ERROR
-            ) 
-        
+        result, error = BaseModel._execute_with_error_handling(
+            operation=operation,
+            context="deactivating production request",
+            default_return=False,
+            entity_name=ProductionRequestModel.ENTITY_NAME,
+        )
+        return result, error
+
     @staticmethod
     def get_all_requests() -> list[tuple]:
         """
@@ -175,64 +188,17 @@ class ProductionRequestModel:
         Returns:
             list[tuple]: A list of tuples representing the production requests.
         """
-
-        try:
-            rows = QueryHelper.fetch_all(
-                """
-                SELECT
-                    pr.request_id,
-                    pr.line_id,
-                    pl.line_name,
-                    pr.status,
-                    pr.requested_at,
-                    pr.requested_by,
-                    u_req.username AS requested_by_name,
-                    pr.approved_by,
-                    u_app.username AS approved_by_name,
-                    pr.approved_at,
-                    pr.is_active
-                FROM production_requests pr
-                JOIN production_lines pl
-                    ON pl.line_id = pr.line_id
-                JOIN users u_req
-                    ON u_req.user_id = pr.requested_by
-                LEFT JOIN users u_app
-                    ON u_app.user_id = pr.approved_by
+        rows = BaseModel._fetch_all_safe(
+            sql=f"""
+                SELECT {ProductionRequestModel._REQUEST_COLUMNS}
+                {ProductionRequestModel._REQUEST_FROM}
                 ORDER BY pr.request_id DESC
-                """
-            )
+                """,
+            params=None,
+            context="retrieving all production requests",
+        )
+        return [ProductionRequestModel._map_row(row) for row in rows]
 
-            return [
-                (
-                    row["request_id"],
-                    row["line_id"],
-                    row["line_name"],
-                    row["status"],
-                    row["requested_at"],
-                    row["requested_by"],
-                    row["requested_by_name"],
-                    row["approved_by"],
-                    row["approved_by_name"],
-                    row["approved_at"],
-                    row["is_active"]
-                )
-                for row in rows
-            ]
-        except DatabaseError as e:
-            ErrorMessages.log_and_mask_error(
-                error=e,
-                context="retrieving all production requests",
-                user_message=ErrorMessages.DATABASE_ERROR
-            )
-            return []
-        except Exception as e:
-            ErrorMessages.log_and_mask_error(
-                error=e,
-                context="retrieving all production requests (unexpected error)",
-                user_message=ErrorMessages.GENERIC_ERROR
-            )
-            return []
-        
     @staticmethod
     def get_request_by_id(request_id: int) -> list[tuple]:
         """
@@ -240,65 +206,15 @@ class ProductionRequestModel:
         Args:
             request_id (int): The ID of the production request to retrieve.
         Returns:
-            tuple | None: A tuple representing the production request, or None if not found.
+            list[tuple]: A list containing the production request tuple if found, empty list otherwise.
         """
-
-        try:
-            row = QueryHelper.fetch_one(
-                """
-                SELECT
-                    pr.request_id,
-                    pr.line_id,
-                    pl.line_name,
-                    pr.status,
-                    pr.requested_at,
-                    pr.requested_by,
-                    u_req.username AS requested_by_name,
-                    pr.approved_by,
-                    u_app.username AS approved_by_name,
-                    pr.approved_at,
-                    pr.is_active
-                FROM production_requests pr
-                JOIN production_lines pl
-                    ON pl.line_id = pr.line_id
-                JOIN users u_req
-                    ON u_req.user_id = pr.requested_by
-                LEFT JOIN users u_app
-                    ON u_app.user_id = pr.approved_by
+        row = BaseModel._fetch_one_safe(
+            sql=f"""
+                SELECT {ProductionRequestModel._REQUEST_COLUMNS}
+                {ProductionRequestModel._REQUEST_FROM}
                 WHERE pr.request_id = :request_id
                 """,
-                {
-                    "request_id": request_id
-                }
-            )
-
-            if row:
-                return [(
-                    row["request_id"],
-                    row["line_id"],
-                    row["line_name"],
-                    row["status"],
-                    row["requested_at"],
-                    row["requested_by"],
-                    row["requested_by_name"],
-                    row["approved_by"],
-                    row["approved_by_name"],
-                    row["approved_at"],
-                    row["is_active"]
-                )]
-            return []
-        
-        except DatabaseError as e:
-            ErrorMessages.log_and_mask_error(
-                error=e,
-                context=f"retrieving production request by ID {request_id}",
-                user_message=ErrorMessages.DATABASE_ERROR
-            )
-            return []
-        except Exception as e:
-            ErrorMessages.log_and_mask_error(
-                error=e,
-                context=f"retrieving production request by ID {request_id} (unexpected error)",
-                user_message=ErrorMessages.GENERIC_ERROR
-            )
-            return []
+            params={"request_id": request_id},
+            context=f"retrieving production request by ID {request_id}",
+        )
+        return [ProductionRequestModel._map_row(row)] if row else []

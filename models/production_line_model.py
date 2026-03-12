@@ -1,12 +1,26 @@
-from config.logger_config import logger
-from database.query_helper import QueryHelper, DatabaseError
-from common.error_messages import ErrorMessages
+from models.base_model import BaseModel
 
-class ProductionLineModel:
+
+class ProductionLineModel(BaseModel):
     """
     Model class for managing production lines in the database.
     Handles secure error logging and provides generic error messages to users.
     """
+
+    TABLE_NAME = "production_lines"
+    ENTITY_NAME = "production line"
+    ID_COLUMN = "line_id"
+    NAME_COLUMN = "line_name"
+    COLUMNS = "line_id, line_name, description, is_active"
+
+    @staticmethod
+    def _map_row(row: dict) -> tuple:
+        return (
+            row["line_id"],
+            row["line_name"],
+            row["description"],
+            row["is_active"],
+        )
 
     @staticmethod
     def add_production_line(name: str, description: str, is_active: bool) -> tuple[bool, str | None]:
@@ -21,38 +35,16 @@ class ProductionLineModel:
                 - success: True if the production line was added successfully
                 - error_message: None if successful, generic error message if failed
         """
-        try:
-            result = QueryHelper.execute(
-                """
+        ok, error, _ = BaseModel._execute_insert(
+            sql="""
                 INSERT INTO production_lines(line_name, description, is_active)
                 VALUES (:name, :description, :is_active)
                 """,
-                {
-                    "name":name,
-                    "description": description,
-                    "is_active": is_active
-                }
-            )
-
-            if result.get("rows_affected", 0) != 1:
-                logger.warning(f"Failed to add production line: {name}")
-                return False, ErrorMessages.SAVE_FAILED
-            
-            return True, None
-        
-        except DatabaseError as e:
-            return False, ErrorMessages.log_and_mask_error(
-                error=e,
-                context=f"adding production line '{name}'",
-                user_message=ErrorMessages.DATABASE_ERROR
-            )
-        
-        except Exception as e:
-            return False, ErrorMessages.log_and_mask_error(
-                error=e,
-                context=f"adding production line '{name}'",
-                user_message=ErrorMessages.GENERIC_ERROR
-            )
+            params={"name": name, "description": description, "is_active": is_active},
+            entity_name=ProductionLineModel.ENTITY_NAME,
+            context=f"adding production line '{name}'",
+        )
+        return ok, error
 
     @staticmethod
     def update_production_line(line_id: int, line_name: str, description: str, is_active: bool) -> tuple[bool, str | None]:
@@ -68,43 +60,25 @@ class ProductionLineModel:
                 - success: True if the production line was updated successfully
                 - error_message: None if successful, generic error message if failed
         """
-        try:
-            result = QueryHelper.execute(
-                """
+        return BaseModel._execute_update(
+            sql="""
                 UPDATE production_lines
                 SET line_name = :line_name,
                     description = :description,
                     is_active = :is_active
                 WHERE line_id = :line_id
                 """,
-                {
-                    "line_id": line_id,
-                    "line_name": line_name,
-                    "description": description,
-                    "is_active": is_active
-                },
-            )
+            params={
+                "line_id": line_id,
+                "line_name": line_name,
+                "description": description,
+                "is_active": is_active,
+            },
+            entity_name=ProductionLineModel.ENTITY_NAME,
+            entity_id=line_id,
+            context=f"updating production line ID {line_id}",
+        )
 
-            if result.get("rows_affected", 0) != 1:
-                logger.warning(f"Production line not found for update: ID {line_id}")
-                return False, ErrorMessages.NOT_FOUND
-            
-            return True, None
-        
-        except DatabaseError as e:
-            return False, ErrorMessages.log_and_mask_error(
-                error=e,
-                context=f"updating production line ID {line_id}",
-                user_message=ErrorMessages.DATABASE_ERROR
-            )
-        
-        except Exception as e:
-            return False, ErrorMessages.log_and_mask_error(
-                error=e,
-                context=f"updating production line ID {line_id}",
-                user_message=ErrorMessages.GENERIC_ERROR
-            )
-        
     @staticmethod
     def get_all_production_lines() -> list[tuple]:
         """
@@ -113,41 +87,14 @@ class ProductionLineModel:
             list[tuple]: A list of tuples representing production lines.
                 Returns empty list if error occurs.
         """
+        return BaseModel._get_all_pattern(
+            table_name=ProductionLineModel.TABLE_NAME,
+            columns=ProductionLineModel.COLUMNS,
+            entity_name=ProductionLineModel.ENTITY_NAME,
+            row_mapper=ProductionLineModel._map_row,
+            order_by=ProductionLineModel.ID_COLUMN,
+        )
 
-        try:
-            rows = QueryHelper.fetch_all(
-                """
-                SELECT line_id, line_name, description, is_active
-                FROM production_lines
-                """
-            )
-
-            return [
-                (
-                    row["line_id"],
-                    row["line_name"],
-                    row["description"],
-                    row["is_active"]
-                )
-                for row in rows
-            ]
-        
-        except DatabaseError as e:
-            ErrorMessages.log_and_mask_error(
-                error=e,
-                context="retrieving all production lines",
-                user_message=ErrorMessages.DATABASE_ERROR
-            )
-            return []
-        
-        except Exception as e:
-            ErrorMessages.log_and_mask_error(
-                error=e,
-                context="retrieving all production lines",
-                user_message=ErrorMessages.GENERIC_ERROR
-            )
-            return []
-        
     @staticmethod
     def search_by_id(line_id: int) -> list[tuple]:
         """
@@ -157,87 +104,31 @@ class ProductionLineModel:
         Returns:
             list[tuple]: A list containing the production line tuple if found, empty list otherwise.
         """
+        return BaseModel._search_by_id_pattern(
+            table_name=ProductionLineModel.TABLE_NAME,
+            columns=ProductionLineModel.COLUMNS,
+            id_column=ProductionLineModel.ID_COLUMN,
+            entity_id=line_id,
+            entity_name=ProductionLineModel.ENTITY_NAME,
+            row_mapper=ProductionLineModel._map_row,
+        )
 
-        try:
-            rows = QueryHelper.fetch_all(
-                """
-                SELECT line_id, line_name, description, is_active
-                FROM production_lines
-                WHERE line_id = :id
-                """,
-                {"id": line_id}
-            )
-
-            return [
-                (
-                    row["line_id"],
-                    row["line_name"],
-                    row["description"],
-                    row["is_active"]
-                )
-                for row in rows
-            ]
-            
-        except DatabaseError as e:
-            ErrorMessages.log_and_mask_error(
-                error=e,
-                context=f"searching production line by ID {line_id}",
-                user_message=ErrorMessages.DATABASE_ERROR
-            )
-            return []
-        
-        except Exception as e:
-            ErrorMessages.log_and_mask_error(
-                error=e,
-                context=f"searching production line by ID {line_id}",
-                user_message=ErrorMessages.GENERIC_ERROR
-            )
-            return []
-        
     @staticmethod
     def search_by_name(line_name: str) -> list[tuple]:
         """
         Searches for production lines by their name.
         Args:
-            line_name (str): The name of the production line to search for.  
+            line_name (str): The name of the production line to search for.
         Returns:
             list[tuple]: A list of tuples representing matching production lines.
                 Returns empty list if not found or error occurs.
         """
-
-        try:
-            rows = QueryHelper.fetch_all(
-                """
-                SELECT line_id, line_name, description, is_active
-                FROM production_lines
-                WHERE line_name ILIKE :name
-                ORDER BY line_id
-                """,
-                {"name": f"%{line_name}%"}
-            )
-
-            return [
-                (
-                    row["line_id"],
-                    row["line_name"],
-                    row["description"],
-                    row["is_active"]
-                )
-                for row in rows
-            ]
-        
-        except DatabaseError as e:
-            ErrorMessages.log_and_mask_error(
-                error=e,
-                context=f"searching production lines by name '{line_name}'",
-                user_message=ErrorMessages.DATABASE_ERROR
-            )
-            return []
-        
-        except Exception as e:
-            ErrorMessages.log_and_mask_error(
-                error=e,
-                context=f"searching production lines by name '{line_name}'",
-                user_message=ErrorMessages.GENERIC_ERROR
-            )
-            return []
+        return BaseModel._search_by_name_pattern(
+            table_name=ProductionLineModel.TABLE_NAME,
+            columns=ProductionLineModel.COLUMNS,
+            name_column=ProductionLineModel.NAME_COLUMN,
+            search_term=line_name,
+            entity_name=ProductionLineModel.ENTITY_NAME,
+            row_mapper=ProductionLineModel._map_row,
+            order_by=ProductionLineModel.ID_COLUMN,
+        )
