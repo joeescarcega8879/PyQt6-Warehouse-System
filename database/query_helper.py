@@ -1,6 +1,7 @@
 import json
 from config.logger_config import logger
 from PyQt6.QtSql import QSqlQuery, QSqlDatabase, QSqlError
+from database.connection import CONNECTION_NAME
 
 class DatabaseError(Exception):
     """Custom exception for database errors."""
@@ -11,7 +12,7 @@ class QueryHelper:
     A helper class for executing SQL queries using PyQt6's QSqlQuery.
     """
     
-    CONNECTION_NAME = "inventory_connection"
+    CONNECTION_NAME = CONNECTION_NAME
 
     @classmethod
     def _get_query(cls) -> QSqlQuery:

@@ -70,6 +70,7 @@ def close_db() -> None:
         if db.isOpen():
             db.close()
             logger.info("Database connection closed")
+        del db  # Release reference before removeDatabase to avoid Qt warning
         QSqlDatabase.removeDatabase(CONNECTION_NAME)
 
 
