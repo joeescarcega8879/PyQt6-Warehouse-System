@@ -77,4 +77,5 @@ Desktop.ini
 # Keep only README.md, ignore all other markdown files and docs folder
 *.md
 !README.md
+!CONTEXT.md
 docs/
