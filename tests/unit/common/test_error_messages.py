@@ -5,7 +5,7 @@ Tests secure error handling, logging, and message sanitization.
 import pytest
 import logging
 from unittest.mock import patch, MagicMock
-from common.error_messages import ErrorMessages
+from src.common.error_messages import ErrorMessages
 
 
 @pytest.mark.unit

@@ -6,9 +6,9 @@ Tests user authentication, CRUD operations, and error handling with mocked datab
 import pytest
 import bcrypt
 from unittest.mock import patch, MagicMock
-from models.user_model import UserModel, AuthenticatedUser
-from database.query_helper import DatabaseError
-from common.error_messages import ErrorMessages
+from src.models.user_model import UserModel, AuthenticatedUser
+from src.database.query_helper import DatabaseError
+from src.common.error_messages import ErrorMessages
 
 
 class TestAuthenticateUser:

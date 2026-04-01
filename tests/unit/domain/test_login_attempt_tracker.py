@@ -5,7 +5,7 @@ Tests rate limiting, lockout logic, and brute force protection.
 import pytest
 from datetime import datetime, timedelta
 from unittest.mock import patch, MagicMock
-from domain.login_attempt_tracker import LoginAttemptTracker
+from src.domain.login_attempt_tracker import LoginAttemptTracker
 
 
 @pytest.mark.unit

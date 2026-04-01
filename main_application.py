@@ -2,32 +2,32 @@ import sys
 from PyQt6.QtWidgets import QApplication, QMdiSubWindow, QMessageBox
 from PyQt6.QtCore import QObject, QEvent
 
-from database.connection import connect_db, close_db
-from config.settings import AppConfig
-from views.login_view import LoginView
-from views.main_view import MainView
-from views.user_view import UserView
-from views.material_view import MaterialView
-from views.line_view import LineView
-from views.change_password_view import ChangePasswordView
-from views.receipt_view import ReceiptView
-from views.supplier_view import SupplierView
-from views.generic_view import GenericView
+from src.database.connection import connect_db, close_db
+from src.config.settings import AppConfig
+from src.views.login_view import LoginView
+from src.views.main_view import MainView
+from src.views.user_view import UserView
+from src.views.material_view import MaterialView
+from src.views.line_view import LineView
+from src.views.change_password_view import ChangePasswordView
+from src.views.receipt_view import ReceiptView
+from src.views.supplier_view import SupplierView
+from src.views.generic_view import GenericView
 
-from common.style_manager import StyleManager
-from common.status_bar_controller import StatusBarController
-from common.session_manager import SessionManager
-from common.error_messages import ErrorMessages
+from src.common.style_manager import StyleManager
+from src.common.status_bar_controller import StatusBarController
+from src.common.session_manager import SessionManager
+from src.common.error_messages import ErrorMessages
 
-from presenters.login_presenter import LoginPresenter
-from presenters.main_presenter import MainPresenter
-from presenters.material_presenter import MaterialPresenter
-from presenters.user_presenter import UserPresenter
-from presenters.change_password_presenter import ChangePasswordPresenter
-from presenters.production_line_presenter import LinePresenter
-from presenters.supplier_receipt_presenter import SupplierReceiptPresenter
-from presenters.supplier_presenter import SupplierPresenter
-from presenters.generic_presenter import GenericPresenter
+from src.presenters.login_presenter import LoginPresenter
+from src.presenters.main_presenter import MainPresenter
+from src.presenters.material_presenter import MaterialPresenter
+from src.presenters.user_presenter import UserPresenter
+from src.presenters.change_password_presenter import ChangePasswordPresenter
+from src.presenters.production_line_presenter import LinePresenter
+from src.presenters.supplier_receipt_presenter import SupplierReceiptPresenter
+from src.presenters.supplier_presenter import SupplierPresenter
+from src.presenters.generic_presenter import GenericPresenter
 
 
 class MainApplication(QObject):
@@ -108,7 +108,7 @@ class MainApplication(QObject):
         Args:
             minutes_remaining: Minutes until session expires
         """
-        from common.enums import StatusType
+        from src.common.enums import StatusType
         
         # Optional: Show warning dialog
         if hasattr(self, 'status_bar_controller'):

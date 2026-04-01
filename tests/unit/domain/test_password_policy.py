@@ -5,7 +5,7 @@ Tests password validation, strength calculation, and requirements checking.
 import pytest
 import os
 from unittest.mock import patch
-from domain.password_policy import PasswordPolicy
+from src.domain.password_policy import PasswordPolicy
 
 
 @pytest.mark.unit

@@ -5,7 +5,7 @@ Tests session timeout, user activity tracking, and signal emission.
 import pytest
 from unittest.mock import Mock, patch
 from PyQt6.QtCore import QTimer
-from common.session_manager import SessionManager
+from src.common.session_manager import SessionManager
 
 
 @pytest.mark.unit

@@ -6,9 +6,9 @@ NOTE: After refactoring to use BaseModel, mocks target 'models.base_model.QueryH
 
 import pytest
 from unittest.mock import patch
-from models.material_model import MaterialModel
-from database.query_helper import DatabaseError
-from common.error_messages import ErrorMessages
+from src.models.material_model import MaterialModel
+from src.database.query_helper import DatabaseError
+from src.common.error_messages import ErrorMessages
 
 
 class TestAddMaterial:
