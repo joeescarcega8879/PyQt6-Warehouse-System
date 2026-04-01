@@ -129,6 +129,7 @@ class LinePresenter:
             except Exception:
                 logger.error("Error searching production line by ID")
                 self._emit_error("Error searching production line by ID")
+            return
 
         if len(query) < 3:
             return
@@ -143,7 +144,7 @@ class LinePresenter:
     def _post_save_cleanup(self)-> None:
         self._is_editing = False
         self._current_line_id = None
-        self.view.clear_form()
+        self.view.clean_form()
         self._load_lines_data()
 
     def _load_lines_data(self)-> None:

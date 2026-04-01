@@ -18,6 +18,7 @@ class ReceiptView(QWidget):
     save_requested = pyqtSignal()
     edit_requested = pyqtSignal()
     cancel_requested = pyqtSignal()
+    delete_requested = pyqtSignal()
     material_selected = pyqtSignal()
     supplier_selected = pyqtSignal()
 
@@ -36,20 +37,17 @@ class ReceiptView(QWidget):
 
         # Set button icons
         self.btn_close.setIcon(_icon("IMG-LogOut.png"))
-
-        self.btn_save.clicked.connect(self.save_requested.emit)
-
-        self.btn_select_material.clicked.connect(self.material_selected.emit)
-
-        self.btn_select_supplier.clicked.connect(self.supplier_selected.emit)
-
-        self.btn_update.clicked.connect(self.edit_requested.emit)
-
-        self.btn_cancel.clicked.connect(self.cancel_requested.emit)
         
+        # Connect signals to slots
+        self.btn_save.clicked.connect(self.save_requested.emit)
+        self.btn_update.clicked.connect(self.edit_requested.emit)
+        self.btn_cancel.clicked.connect(self.cancel_requested.emit)
+        self.btn_delete.clicked.connect(self.delete_requested.emit)
         self.btn_close.clicked.connect(self.close)
 
-        # self.bar_information.hide()
+        self.btn_select_supplier.clicked.connect(self.supplier_selected.emit)
+        self.btn_select_material.clicked.connect(self.material_selected.emit)
+
 
     def get_receipt_form_data(self) -> dict | None:
         return {
@@ -76,15 +74,38 @@ class ReceiptView(QWidget):
         current_row = self.tableWidget.currentRow()
         if current_row < 0:
             return None
-        
+
         table = self.tableWidget
+
+        def cell(col: int) -> str:
+            item = table.item(current_row, col)
+            return item.text() if item else ""
+
+        id_text = cell(0)
+        material_text = cell(1)
+        supplier_text = cell(2)
+
+        if not id_text or not material_text or not supplier_text:
+            return None
+
         return {
-            "id": int(table.item(current_row, 0).text()),
-            "material_id": int(table.item(current_row, 1).text()),
-            "supplier_id": int(table.item(current_row, 2).text()),
-            "quantity": table.item(current_row, 4).text(),
-            "notes": table.item(current_row, 6).text(),
+            "id":          int(id_text),
+            "material_id": int(material_text),
+            "supplier_id": int(supplier_text),
+            "quantity":    cell(4),
+            "notes":       cell(6),
         }
+
+    def enable_create(self, enabled: bool) -> None:
+        self.btn_save.setVisible(enabled)
+        self.btn_select_material.setEnabled(enabled)
+        self.btn_select_supplier.setEnabled(enabled)
+
+    def enable_edit(self, enabled: bool) -> None:
+        self.btn_update.setVisible(enabled)
+
+    def enable_delete(self, enabled: bool) -> None:
+        self.btn_delete.setVisible(enabled)
 
     def load_user_information(self, user_info: dict) -> None:
         self.label_user_name.setText(f"User Name: {user_info.get('username', '')}")

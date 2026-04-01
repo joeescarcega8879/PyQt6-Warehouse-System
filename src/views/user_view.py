@@ -29,11 +29,8 @@ class UserView(QWidget):
 
         # Connect buttons
         self.btn_save.clicked.connect(self.save_requested.emit)
-
         self.btn_update.clicked.connect(self.edit_requested.emit)
-
         self.btn_change_password.clicked.connect(self.change_password_requested.emit)
-
         self.btn_close.clicked.connect(self.close)
 
         self.input_search.textChanged.connect(self.on_search_text_changed)
@@ -115,7 +112,7 @@ class UserView(QWidget):
         FormatComponents.format_qtablewidget(self.tableWidget, headers, users)
 
     def initialize_user_role_combo_box(self)-> None:
-        roles = ["admin", "operator", "viewer"]
+        roles = ["admin", "operator", "viewer", "supervisor", "leader"]
         is_active_user = [True, False]
 
         self.cbo_user_role.clear()

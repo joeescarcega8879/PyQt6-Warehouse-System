@@ -1,3 +1,5 @@
+from PyQt6.QtWidgets import QMessageBox
+
 from src.config.logger_config import logger
 from src.common.enums import StatusType
 
@@ -21,6 +23,7 @@ class SupplierReceiptPresenter:
 
         self._connect_signals()
         self._load_user_information()
+        self._apply_permissions()
         self._load_receipts_data()
 
     def _connect_signals(self) -> None:
@@ -28,6 +31,7 @@ class SupplierReceiptPresenter:
         self.view.supplier_selected.connect(self._handle_select_supplier)
         self.view.save_requested.connect(self._handle_save)
         self.view.edit_requested.connect(self._handle_edit)
+        self.view.delete_requested.connect(self._handle_delete)
         self.view.cancel_requested.connect(self._handle_cancel)
       
     def _handle_save(self) -> None:
@@ -137,10 +141,101 @@ class SupplierReceiptPresenter:
         except ValueError as e:
             logger.exception("Invalid data format in receipt")
             self._emit_error("Invalid quantity format. Must be a valid number.")
+        
         except Exception as e:
             logger.exception("Error saving receipt")
             self._emit_error("Unexpected error saving receipt")
     
+    def _handle_edit(self) -> None:
+        """Handle edit button click to load receipt into form."""
+        data = self.view.get_selected_receipt_data()
+        
+        if not data or data.get("id") is None:
+            self._emit_error("Please select a valid receipt to edit")
+            return
+        
+        self._is_editing = True
+        self._current_receipt_id = data["id"]
+        
+        # Cargar datos al formulario
+        self.view.set_form_data(data)
+
+    def _handle_delete(self) -> None:
+        """Handle delete button click to remove receipt."""
+        data = self.view.get_selected_receipt_data()
+
+        if not data or data.get("id") is None:
+            self._emit_error("Please select a valid receipt to delete")
+            return
+
+        receipt_id = data["id"]
+
+        try:
+            if not PermissionService.has_permission(self.current_user, Permission.RECEIPTS_DELETE):
+                self._emit_error("You do not have permission to delete receipts")
+
+                AuditService.log_action(
+                    user_id=self.current_user.user_id,
+                    action=AuditDefinition.RECEIPTS_DELETED,
+                    success=False,
+                    entity="SupplierReceipt",
+                    entity_id=receipt_id,
+                    meta={"reason": "Insufficient permissions"}
+                )
+                return
+
+            confirm = QMessageBox.question(
+                self.view,
+                "Confirm Delete",
+                f"Are you sure you want to delete receipt ID {receipt_id}? This action cannot be undone.",
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+                QMessageBox.StandardButton.No
+            )
+            if confirm != QMessageBox.StandardButton.Yes:
+                return
+
+            success, error_msg = SupplierReceiptModel.delete_receipt(receipt_id)
+
+            if success:
+                AuditService.log_action(
+                    user_id=self.current_user.user_id,
+                    action=AuditDefinition.RECEIPTS_DELETED,
+                    success=True,
+                    entity="SupplierReceipt",
+                    entity_id=receipt_id
+                )
+                self._emit_success("Receipt deleted successfully")
+                self._load_receipts_data() 
+            else:
+                self._emit_error(f"Error deleting receipt: {error_msg}")
+                AuditService.log_action(
+                    user_id=self.current_user.user_id,
+                    action=AuditDefinition.RECEIPTS_DELETED,
+                    success=False,
+                    entity="SupplierReceipt",
+                    entity_id=receipt_id,
+                    meta={"reason": error_msg}
+                )
+
+        except Exception as e:
+            logger.exception("Error deleting receipt")
+            self._emit_error("Unexpected error deleting receipt")
+
+    def _handle_cancel(self) -> None:
+        """Handle cancel button click to reset form."""
+        self._is_editing = False
+        self._current_receipt_id = None
+        self.view.clear_form()
+        self._load_receipts_data()
+
+    def _apply_permissions(self) -> None:
+        can_create = PermissionService.has_permission(self.current_user, Permission.RECEIPTS_CREATE)
+        can_edit   = PermissionService.has_permission(self.current_user, Permission.RECEIPTS_EDIT)
+        can_delete = PermissionService.has_permission(self.current_user, Permission.RECEIPTS_DELETE)
+        self.view.enable_create(can_create)
+        self.view.enable_edit(can_edit)
+        self.view.enable_delete(can_delete)
+
     def _load_user_information(self) -> None:
         user_info = {
             "username": self.current_user.username,
@@ -148,6 +243,56 @@ class SupplierReceiptPresenter:
         }
 
         self.view.load_user_information(user_info)
+    
+    def _load_receipts_data(self) -> None:
+        """Load all receipts from database into table."""
+        receipts = SupplierReceiptModel.get_all_receipts()
+        self.view.load_receipts(receipts)
+
+    def _post_save_cleanup(self) -> None:
+        """Reset form state after successful save."""
+        self._is_editing = False
+        self._current_receipt_id = None
+        self._selected_material = None
+        self.view.clear_form()
+        self._load_receipts_data()
+
+    def _handle_select_material(self) -> None:
+
+        if not PermissionService.has_permission(self.current_user, Permission.RECEIPTS_CREATE):
+            self._emit_error("You do not have permission to select materials for receipts")
+            AuditService.log_action(
+                user_id=self.current_user.user_id,
+                action=AuditDefinition.RECEIPTS_CREATED,
+                success=False,
+                meta={"reason": "Insufficient permissions"}
+            )
+            return
+        
+        self.main_app.open_generic_form(entity_type="material", on_item_selected=self._on_material_selected)
+
+    def _handle_select_supplier(self) -> None:
+
+        if not PermissionService.has_permission(self.current_user, Permission.RECEIPTS_CREATE):
+            self._emit_error("You do not have permission to select suppliers for receipts")
+            AuditService.log_action(
+                user_id=self.current_user.user_id,
+                action=AuditDefinition.RECEIPTS_CREATED,
+                success=False,
+                meta={"reason": "Insufficient permissions"}
+            )
+            return
+        
+        self.main_app.open_generic_form(entity_type="supplier", on_item_selected=self._on_supplier_selected)
+
+    def _on_supplier_selected(self, supplier: dict) -> None:
+        self.view.display_selected_supplier(supplier)
+
+    def _on_material_selected(self, material: dict) -> None:
+
+        # Save matierial selected
+        self._selected_material = material
+        self.view.display_selected_material(material)
     
     def _validate(self, data: dict) -> str | None:
         """Validate receipt form data.
@@ -196,78 +341,7 @@ class SupplierReceiptPresenter:
             return "Quantity must be a valid number"
         
         return None
-
-    def _load_receipts_data(self) -> None:
-        """Load all receipts from database into table."""
-        receipts = SupplierReceiptModel.get_all_receipts()
-        self.view.load_receipts(receipts)
-
-    def _handle_edit(self) -> None:
-        """Handle edit button click to load receipt into form."""
-        data = self.view.get_selected_receipt_data()
-        
-        if not data or data.get("id") is None:
-            self._emit_error("Please select a valid receipt to edit")
-            return
-        
-        self._is_editing = True
-        self._current_receipt_id = data["id"]
-        
-        # Cargar datos al formulario
-        self.view.set_form_data(data)
-
-    def _handle_cancel(self) -> None:
-        """Handle cancel button click to reset form."""
-        self._is_editing = False
-        self._current_receipt_id = None
-        self.view.clear_form()
-        self._load_receipts_data()
-
-    def _post_save_cleanup(self) -> None:
-        """Reset form state after successful save."""
-        self._is_editing = False
-        self._current_receipt_id = None
-        self._selected_material = None
-        self.view.clear_form()
-        self._load_receipts_data()
-
-    def _handle_select_material(self) -> None:
-
-        if not PermissionService.has_permission(self.current_user, Permission.RECEIPTS_CREATE):
-            self._emit_error("You do not have permission to select materials for receipts")
-            AuditService.log_action(
-                user_id=self.current_user.user_id,
-                action=AuditDefinition.RECEIPTS_CREATED,
-                success=False,
-                meta={"reason": "Insufficient permissions"}
-            )
-            return
-        
-        self.main_app.open_generic_form(entity_type="material", on_item_selected=self._on_material_selected)
-
-    def _handle_select_supplier(self) -> None:
-
-        if not PermissionService.has_permission(self.current_user, Permission.RECEIPTS_CREATE):
-            self._emit_error("You do not have permission to select suppliers for receipts")
-            AuditService.log_action(
-                user_id=self.current_user.user_id,
-                action=AuditDefinition.RECEIPTS_CREATED,
-                success=False,
-                meta={"reason": "Insufficient permissions"}
-            )
-            return
-        
-        self.main_app.open_generic_form(entity_type="supplier", on_item_selected=self._on_supplier_selected)
-
-    def _on_supplier_selected(self, supplier: dict) -> None:
-        self.view.display_selected_supplier(supplier)
-
-    def _on_material_selected(self, material: dict) -> None:
-
-        # Save matierial selected
-        self._selected_material = material
-        self.view.display_selected_material(material)
-
+    
     def _emit_error(self, message: str) -> None:
         self.status_handler(message, 3000, StatusType.ERROR)
 

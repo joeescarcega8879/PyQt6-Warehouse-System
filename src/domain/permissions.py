@@ -20,6 +20,7 @@ PERMISSIONS = {
 
     Permission.RECEIPTS_CREATE: {UserRole.ADMIN, UserRole.SUPERVISOR, UserRole.LEADER},
     Permission.RECEIPTS_EDIT: {UserRole.ADMIN, UserRole.SUPERVISOR},
+    Permission.RECEIPTS_DELETE: {UserRole.ADMIN, UserRole.SUPERVISOR},
 
     Permission.SUPPLIER_CREATE: {UserRole.ADMIN, UserRole.SUPERVISOR},
     Permission.SUPPLIER_EDIT: {UserRole.ADMIN, UserRole.SUPERVISOR},

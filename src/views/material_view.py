@@ -1,12 +1,18 @@
-from pathlib import Path
 from PyQt6 import uic
-from pathlib import Path
+from PyQt6.QtGui import QIcon
 from PyQt6.QtCore import pyqtSignal
-from pathlib import Path
 from PyQt6.QtWidgets import QWidget, QMessageBox
 
+from pathlib import Path
 from src.common.enums import StatusType
 from src.common.format import FormatComponents
+
+
+_ICONS_DIR = Path(__file__).resolve().parent.parent / "assets" / "icons"
+
+def _icon(filename: str) -> QIcon:
+    """Return a QIcon from the icons directory. Safe on any OS."""
+    return QIcon(str(_ICONS_DIR / filename))
 
 class MaterialView(QWidget):
 
@@ -21,10 +27,11 @@ class MaterialView(QWidget):
 
     def __init__(self):
         super(MaterialView, self).__init__()
-    
+
         # Initialize components
         self.initialize_components()
 
+        self.btn_close.setIcon(_icon("IMG-LogOut.png"))
 
     def initialize_components(self):
         # Load ui path

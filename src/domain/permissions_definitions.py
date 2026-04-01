@@ -21,6 +21,7 @@ class Permission:
 
     RECEIPTS_CREATE = "receipts.create"
     RECEIPTS_EDIT = "receipts.edit"
+    RECEIPTS_DELETE = "receipts.delete"
 
     SUPPLIER_CREATE = "supplier.create"
     SUPPLIER_EDIT = "supplier.edit"

@@ -19,4 +19,14 @@ STATUSBAR_STYLES = {
             padding: 2px 8px;
         }
     """,
+
+    StatusType.WARNING: """
+        .QStatusBar {
+            background-color: #fef3c7;
+            color: #92400e;
+            border-top: 1px solid #fde68a;
+            font-weight: bold;
+            padding: 2px 8px;
+        }
+    """,
 }

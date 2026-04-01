@@ -18,7 +18,7 @@ class BasePresenter:
     these common patterns.
     """
     
-    def __init__(self, view, status_handler, current_user=None):
+    def __init__(self, view, status_handler, current_user=None, **kwargs):
         """
         Initialize the base presenter.
         
@@ -26,10 +26,17 @@ class BasePresenter:
             view: The view instance this presenter controls
             status_handler: Callback function for displaying status messages
             current_user: Current logged-in user (optional for presenters that don't need it)
+            **kwargs: Additional attributes assigned dynamically (e.g. main_app)
         """
         self.view = view
         self.status_handler = status_handler
         self.current_user = current_user
+
+        # Assign any extra keyword arguments as instance attributes
+        # This allows subclasses to receive extra dependencies (e.g. main_app)
+        # without needing to redeclare __init__ just to store them.
+        for key, value in kwargs.items():
+            setattr(self, key, value)
         
         # Edit mode state management
         self._is_editing = False

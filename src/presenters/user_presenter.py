@@ -159,11 +159,6 @@ class UserPresenter:
 
     def _handle_change_password(self) -> None:
         
-        # user_id = self.view.get_selected_user_id()
-        # if not user_id:
-        #     self._emit_error("Please select a valid user to change password")
-        #     return
-        
         if not PermissionService.has_permission(self.current_user, Permission.USERS_CHANGE_PASSWORD):
             self._emit_error("You do not have permission to change user passwords")
             AuditService.log_action(

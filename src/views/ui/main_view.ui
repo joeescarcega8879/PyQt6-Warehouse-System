@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>1360</width>
-    <height>600</height>
+    <height>654</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -36,6 +36,9 @@
        <string/>
       </property>
       <layout class="QGridLayout" name="gridLayout_2">
+       <property name="topMargin">
+        <number>2</number>
+       </property>
        <property name="verticalSpacing">
         <number>6</number>
        </property>
