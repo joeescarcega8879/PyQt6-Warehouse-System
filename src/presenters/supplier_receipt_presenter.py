@@ -140,11 +140,11 @@ class SupplierReceiptPresenter:
                     
         except ValueError as e:
             logger.exception("Invalid data format in receipt")
-            self._emit_error("Invalid quantity format. Must be a valid number.")
+            self._emit_error(f"Invalid quantity format. Must be a valid number. {e}")
         
         except Exception as e:
             logger.exception("Error saving receipt")
-            self._emit_error("Unexpected error saving receipt")
+            self._emit_error(f"Unexpected error saving receipt: {e}")
     
     def _handle_edit(self) -> None:
         """Handle edit button click to load receipt into form."""
@@ -303,8 +303,8 @@ class SupplierReceiptPresenter:
         Returns:
             Error message string if invalid, None if valid
         """
-        material_id = data.get("material_id")
-        supplier_id = data.get("supplier_id")
+        material_id = int(data.get("material_id"))
+        supplier_id = int(data.get("supplier_id"))
         quantity_str = (data.get("quantity") or "").strip()
         created_by = data.get("created_by")
         

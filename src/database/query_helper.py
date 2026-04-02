@@ -49,13 +49,32 @@ class QueryHelper:
             raise DatabaseError("SQL statement cannot be empty.")
         
         query = cls._get_query()
-        query.prepare(sql)
-        
+
         if params:
+            # Use prepare + bindValue for parameterized queries
+            query.prepare(sql)
             for key, value in params.items():
                 query.bindValue(f":{key}", value)
-        
+        # else: no prepare needed; _exec_query will call query.exec(sql) directly
+
         return query
+
+    @classmethod
+    def _exec_query(cls, query: QSqlQuery, sql: str, params: dict | None) -> bool:
+        """
+        Execute a query, using direct exec(sql) when there are no parameters
+        to avoid server-side prepared statement issues on Linux QPSQL driver.
+        Args:
+            query (QSqlQuery): The query object.
+            sql (str): The original SQL statement.
+            params (dict | None): Parameters dict (may be None or empty).
+        Returns:
+            bool: True if execution succeeded, False otherwise.
+        """
+        if params:
+            return query.exec()
+        else:
+            return query.exec(sql)
     
     @classmethod
     def execute(cls, sql: str, params: dict | None = None) -> dict:
@@ -74,7 +93,7 @@ class QueryHelper:
         """
         query = cls._prepare_query(sql, params)
 
-        if not query.exec():
+        if not cls._exec_query(query, sql, params):
             error_msg = cls._log_error(query.lastError(), sql)
             raise DatabaseError(error_msg)
         
@@ -99,7 +118,7 @@ class QueryHelper:
         query = cls._prepare_query(sql, params)
         results = []
 
-        if not query.exec():
+        if not cls._exec_query(query, sql, params):
             error_msg = cls._log_error(query.lastError(), sql)
             raise DatabaseError(error_msg)
         
