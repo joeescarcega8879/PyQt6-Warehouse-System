@@ -32,7 +32,7 @@ PyQt6-Warehouse-System/
 │   │   └── user_model.py        # CRUD de usuarios + autenticacion (bcrypt)
 │   │
 │   ├── presenters/              # Capa de logica de negocio (MVP Presenter)
-│   │   ├── base_presenter.py    # Patron base: status, busqueda, edit-mode
+│   │   ├── base_presenter.py    # Patron base: status, busqueda, edit-mode, validaciones
 │   │   ├── login_presenter.py   # Autenticacion + rate limiting
 │   │   ├── main_presenter.py    # Navegacion principal + permisos de menu
 │   │   ├── material_presenter.py          # Logica de materiales
@@ -40,7 +40,7 @@ PyQt6-Warehouse-System/
 │   │   ├── production_line_presenter.py   # Logica de lineas de produccion
 │   │   ├── supplier_presenter.py          # Logica de proveedores
 │   │   ├── supplier_receipt_presenter.py  # Logica de recepciones
-│   │   ├── change_password_presenter.py   # Cambio de contrasena
+│   │   ├── change_password_presenter.py   # Cambio de contrasena (hereda BasePresenter)
 │   │   └── generic_presenter.py           # Selector generico de entidades
 │   │
 │   ├── views/                   # Capa de UI (PyQt6 Widgets)
@@ -51,8 +51,20 @@ PyQt6-Warehouse-System/
 │   │   ├── line_view.py         # Formulario de lineas de produccion
 │   │   ├── supplier_view.py     # Formulario de proveedores
 │   │   ├── receipt_view.py      # Formulario de recepciones
-│   │   ├── change_password_view.py   # Dialog de cambio de contrasena
-│   │   └── generic_view.py      # Vista selector generica (dialog)
+│   │   ├── production_request_view.py  # Formulario de ordenes de produccion (sin presenter aun)
+│   │   ├── change_password_view.py     # Dialog de cambio de contrasena
+│   │   ├── generic_view.py      # Vista selector generica (dialog)
+│   │   └── ui/                  # Archivos .ui de Qt Designer
+│   │       ├── login_view.ui
+│   │       ├── main_view.ui
+│   │       ├── material_view.ui
+│   │       ├── user_view.ui
+│   │       ├── line_view.ui
+│   │       ├── supplier_view.ui
+│   │       ├── receipt_view.ui
+│   │       ├── production_request_view.ui
+│   │       ├── change_password.ui
+│   │       └── generic_view.ui
 │   │
 │   ├── domain/                  # Reglas de negocio / politicas de seguridad
 │   │   ├── roles.py                     # Enum UserRole (admin/supervisor/leader/operator/viewer)
@@ -72,7 +84,7 @@ PyQt6-Warehouse-System/
 │   │   ├── status_bar_controller.py  # Controlador de barra de estado
 │   │   ├── session_manager.py   # Manejo de timeout de sesion (QTimer)
 │   │   ├── error_messages.py    # Mensajes de error centralizados + log
-│   │   ├── format.py            # Helpers de formateo de datos
+│   │   ├── format.py            # Helpers de formateo de datos (FormatComponents)
 │   │   ├── model_adapter.py     # Adaptador de tuples de modelo a QStandardItemModel
 │   │   └── entity_config.py     # Configuracion generica de entidades (EntityType enum)
 │   │
@@ -80,22 +92,17 @@ PyQt6-Warehouse-System/
 │   │   ├── connection.py        # Conexion PostgreSQL via QSqlDatabase
 │   │   ├── query_helper.py      # Wrapper de QSqlQuery (fetch_all, fetch_one, execute)
 │   │   └── migrations/
-│   │       └── 001_create_login_attempts.sql
+│   │       ├── README.md
+│   │       ├── 001_create_login_attempts.sql
+│   │       └── 002_refactor_supplier_receipts.sql
+│   │
+│   ├── assets/                  # Recursos estaticos
+│   │   ├── styles.css           # Estilos globales QSS
+│   │   └── icons/               # Iconos de la aplicacion (PNG)
 │   │
 │   └── config/                  # Configuracion de la aplicacion
 │       ├── settings.py          # DatabaseConfig / AppConfig / SecurityConfig (dotenv)
 │       └── logger_config.py     # Configuracion de logging con rotacion de archivos
-│
-├── ui/                          # Archivos .ui de Qt Designer
-│   ├── login_view.ui
-│   ├── main_view.ui
-│   ├── material_view.ui
-│   ├── user_view.ui
-│   ├── line_view.ui
-│   ├── supplier_view.ui
-│   ├── receipt_view.ui
-│   ├── change_password.ui
-│   └── generic_view.ui
 │
 ├── tests/                       # Suite de pruebas (pytest)
 │   ├── conftest.py
@@ -112,12 +119,11 @@ PyQt6-Warehouse-System/
 │   └── integration/             # (vacio - pendiente)
 │       └── __init__.py
 │
-├── assets/
-│   ├── styles.css               # Estilos globales QSS
-│   └── Images/                  # Imagenes de la aplicacion
-│
 ├── logs/                        # Logs rotativos por fecha (app_YYYYMMDD.log)
 │
+├── schema.sql                   # DDL completo — crea toda la estructura desde cero
+├── reset_db.sql                 # DROP + schema.sql — limpieza para desarrollo/pruebas
+├── seed_data.sql                # Datos de prueba idempotentes (ON CONFLICT DO NOTHING)
 ├── .env.example                 # Plantilla de variables de entorno
 ├── .env                         # Variables de entorno locales (NO commitear)
 ├── requirements.txt             # Dependencias Python
@@ -158,6 +164,28 @@ PyQt6 Widget         Logica de negocio     SQL / DB
 - **Domain**: Politicas puras (permisos, contrasenas, rate limiting) sin dependencias UI.
 - **BaseModel / BasePresenter**: Clases base con patrones reutilizables (DRY).
 
+### Jerarquia de Presenters
+
+Todos los presenters de modulo heredan de `BasePresenter`:
+
+```
+BasePresenter
+├── MaterialPresenter
+├── UserPresenter
+├── ProductionLinePresenter
+├── SupplierPresenter
+├── SupplierReceiptPresenter
+├── ChangePasswordPresenter
+├── GenericPresenter
+├── LoginPresenter
+└── MainPresenter
+```
+
+`BasePresenter` provee: `_emit_error`, `_emit_success`, `_enter_edit_mode`, `_exit_edit_mode`,
+`_clear_form_and_reset_state`, `_load_user_information_to_view`, `_handle_search_with_id_and_name`,
+`_validate_required_field`, `_validate_required_fields`. El ID de la entidad en edicion se
+almacena siempre en `_current_entity_id` (no en variables especificas por modulo).
+
 ---
 
 ## Funcionalidades Implementadas
@@ -179,7 +207,7 @@ PyQt6 Widget         Logica de negocio     SQL / DB
 - [x] Servicio de verificacion centralizado (`PermissionsService`)
 
 ### Modulo Materiales
-- [x] Listado con tabla paginable
+- [x] Listado con tabla
 - [x] Busqueda por ID (numerico) y por nombre (ILIKE)
 - [x] Crear material (nombre, descripcion, unidad)
 - [x] Editar material seleccionado
@@ -190,7 +218,7 @@ PyQt6 Widget         Logica de negocio     SQL / DB
 - [x] Listado con tabla
 - [x] Busqueda por ID y por nombre
 - [x] Crear proveedor (nombre, departamento, telefono, email, direccion, notas)
-- [x] Editar proveedor
+- [x] Editar proveedor (incluye activar/desactivar via campo `is_active`)
 - [ ] Eliminar proveedor (sin implementar: no hay boton, ni handler, ni metodo en modelo)
 - [x] Auditoria de create / edit
 
@@ -218,6 +246,16 @@ PyQt6 Widget         Logica de negocio     SQL / DB
 - [ ] Cambio de contrasena de un usuario seleccionado (el ID del usuario seleccionado esta comentado, siempre abre para el usuario actual)
 - [x] Auditoria de create / edit / password change
 
+### Modulo Ordenes de Produccion — Vista
+- [x] Vista (`ProductionRequestView`) implementada con todos los signals y metodos publicos
+- [x] Archivo `.ui` (`production_request_view.ui`) con layout completo
+- [x] Tabla interna de items (`tableItems`) con validaciones de duplicado, cantidad y material
+- [x] Botones de flujo de estados: Save, Submit, Approve, Reject, Deactivate
+- [x] Dialogs de confirmacion para acciones irreversibles (Submit, Approve, Reject, Deactivate)
+- [x] Metodos de control de visibilidad por permiso: `enable_create`, `enable_submit`, `enable_approve`, `enable_deactivate`
+- [ ] Presenter (`ProductionRequestPresenter`) — pendiente
+- [ ] Registro en `main_application.py` y boton en menu principal — pendiente
+
 ### Selector Generico
 - [x] Dialog reutilizable para seleccionar Material, Proveedor o Linea de Produccion
 - [x] Configuracion via `EntityType` enum (columnas, metodos, campo ID/nombre)
@@ -233,7 +271,7 @@ PyQt6 Widget         Logica de negocio     SQL / DB
 - [x] `QueryHelper`: wrapper de QSqlQuery con `fetch_all`, `fetch_one`, `execute`, transacciones
 - [x] Configuracion via `.env` (dotenv) con validacion al inicio
 - [x] Logging rotativo por fecha (`logs/app_YYYYMMDD.log`)
-- [x] Estilos globales QSS cargados desde `assets/styles.css`
+- [x] Estilos globales QSS cargados desde `src/assets/styles.css`
 - [x] `StatusBarController`: mensajes de estado coloreados (SUCCESS / ERROR)
 - [x] MDI: cada formulario abre como `QMdiSubWindow`
 
@@ -242,21 +280,20 @@ PyQt6 Widget         Logica de negocio     SQL / DB
 ## Funcionalidades Pendientes / Incompletas
 
 ### Modulo Ordenes de Produccion (Production Requests)
-- [ ] **Sin vista ni presenter implementados** — el modelo (`ProductionRequestModel`) esta completo con:
+- [ ] **Presenter pendiente** — `ProductionRequestPresenter` — el modelo esta completo con:
   - `create_request` (con items, transaccion atomica)
   - `update_status_request` (DRAFT → SUBMITTED → APPROVED / REJECTED / CANCELLED)
   - `deactivate_request`
   - `get_all_requests` / `get_request_by_id`
-- [ ] Los permisos estan definidos (`PRODUCTION_REQUESTS_*`)
-- [ ] Los eventos de auditoria estan definidos (`PRODUCTION_REQUESTS_CREATED`, etc.)
-- [ ] El enum de estados esta definido (`ProductionRequestStatus`)
-- [ ] **Falta:** vista, presenter, boton en menu principal, integracion completa
+- [x] Vista implementada (`production_request_view.py` + `production_request_view.ui`)
+- [x] Permisos definidos (`PRODUCTION_REQUESTS_*`)
+- [x] Eventos de auditoria definidos (`PRODUCTION_REQUESTS_CREATED`, etc.)
+- [x] Enum de estados definido (`ProductionRequestStatus`)
+- [ ] **Falta:** presenter, conexion en `main_application.py`, boton activo en menu principal
 
-### Modulo Proveedores
-- [ ] **Activar / Desactivar proveedor** — no se eliminara, solo se cambiara el estado `is_active`. Falta:
-  - Metodo `toggle_active_supplier` (o similar) en `supplier_model.py`
-  - Boton y handler en `supplier_view.py` y `supplier_presenter.py`
-  - Auditoria del evento
+### Modulo Recepciones / Proveedores
+- [ ] Eliminar proveedor — sin boton, handler ni metodo en modelo
+- [ ] Eliminar recepcion — metodo en modelo existe pero sin boton ni handler en vista/presenter
 
 ### Bugs Conocidos
 - Todos los bugs documentados anteriormente fueron corregidos.
@@ -270,11 +307,12 @@ PyQt6 Widget         Logica de negocio     SQL / DB
 - [ ] Tests para `ProductionLineModel`
 
 ### Mejoras de Arquitectura
-- [ ] `UserPresenter`, `LinePresenter`, `SupplierPresenter`, `SupplierReceiptPresenter` no heredan de `BasePresenter` — codigo duplicado de `_emit_error`/`_emit_success` y manejo de edit-mode
-  - `BasePresenter.__init__` ya fue actualizado para aceptar `**kwargs` (asigna `main_app` y otros extras automaticamente via `setattr`)
-  - Pendiente: migrar los 4 presenters para que hereden de `BasePresenter`
-- [x] `python-dotenv` agregado a `requirements.txt` (version 1.1.0)
-- [ ] Falta migracion SQL completa del esquema (solo existe `001_create_login_attempts.sql`; las tablas principales no tienen script de creacion incluido)
+- [x] Todos los presenters de modulo migrados a `BasePresenter` — incluido `ChangePasswordPresenter`
+- [x] Variable `_current_entity_id` unificada en todos los presenters (eliminado `_current_material_id` y otros)
+- [x] `python-dotenv` en `requirements.txt` (version 1.1.0)
+- [x] `schema.sql` creado con DDL completo del esquema (todas las tablas, sequences, constraints, indices)
+- [x] `reset_db.sql` creado para limpieza y recreacion de BD en desarrollo/pruebas
+- [x] Migracion `002_refactor_supplier_receipts.sql` documentada en `src/database/migrations/README.md`
 
 ---
 
@@ -305,7 +343,7 @@ PyQt6 Widget         Logica de negocio     SQL / DB
 ## Flujo de Inicio
 
 ```
-main() 
+main()
   └─> connect_db()          # Valida .env y abre conexion PostgreSQL
   └─> MainApplication()
         └─> LoginView + LoginPresenter
@@ -323,12 +361,72 @@ Inactividad (N min)   →  session_warning signal  →  muestra aviso en status 
 Inactividad total     →  session_expired signal  →  cierra MainView  →  LoginView
 ```
 
+## Flujo de Estados — Ordenes de Produccion
+
+```
+DRAFT  ──submit──>  SUBMITTED  ──approve──>  APPROVED
+                        │
+                        └──reject──>   REJECTED
+DRAFT / SUBMITTED / APPROVED  ──deactivate──>  is_active = FALSE
+Cualquier estado               ──cancelled──>  CANCELLED
+```
+
 ---
 
 ## Notas para Desarrolladores
 
 - Los modelos retornan `tuple[bool, str | None]` para operaciones de escritura y `list[tuple]` para consultas. Los presenters deben desempaquetar correctamente.
 - El `QueryHelper` centraliza toda interaccion con QSqlQuery. No usar QSqlQuery directamente en modelos.
-- Para agregar un nuevo modulo: crear Model → Presenter → View → .ui file → registrar en `main_application.py`.
+- Para agregar un nuevo modulo: crear Model → Presenter → View → `.ui` → registrar en `main_application.py`.
 - El `GenericPresenter` + `EntityType` enum permite crear selectores de entidad sin duplicar codigo.
-- Los archivos `.ui` de Qt Designer se cargan en runtime via `uic.loadUi()` en las vistas.
+- Los archivos `.ui` de Qt Designer se cargan en runtime via `uic.loadUi()` en las vistas. La ruta se construye con `Path(__file__).resolve().parent / "ui" / "nombre.ui"`.
+- Todos los presenters de modulo deben heredar `BasePresenter` y usar `_current_entity_id` para almacenar el ID de la entidad en edicion.
+- Los iconos de la aplicacion viven en `src/assets/icons/`. El helper `_icon(filename)` disponible en cada vista construye el `QIcon` con la ruta correcta.
+
+---
+
+## Datos de Prueba y Reseteo de BD
+
+### Reseteo completo (limpia todo y recarga estructura)
+
+```bash
+# Solo estructura limpia (sin datos)
+psql -h localhost -U <DB_USER> -d <DB_NAME> -f reset_db.sql
+
+# Estructura + datos de prueba
+psql -h localhost -U <DB_USER> -d <DB_NAME> -f reset_db.sql
+psql -h localhost -U <DB_USER> -d <DB_NAME> -f seed_data.sql
+```
+
+### Archivos SQL en la raiz del proyecto
+
+| Archivo | Proposito |
+|---|---|
+| `schema.sql` | DDL completo — crea todas las tablas, sequences, constraints e indices desde cero |
+| `reset_db.sql` | DROP CASCADE de todas las tablas + `\i schema.sql` — uso en desarrollo/pruebas |
+| `seed_data.sql` | Datos de prueba idempotentes (`ON CONFLICT DO NOTHING`) |
+
+### Contenido del seed
+
+Script SQL idempotente. Cada seccion termina con `SELECT setval(...)` para sincronizar las secuencias seriales.
+
+| Tabla | Registros | Detalle |
+|---|---|---|
+| `users` | 10 | 1 admin, 2 supervisors, 3 leaders, 2 operators, 2 viewers. `viewer_iris` inactiva. |
+| `materials` | 20 | Materiales industriales: acero, tornilleria, pintura, sensores, EPP, etc. |
+| `production_lines` | 6 | Lineas A–E activas. Linea F (Mantenimiento) inactiva. |
+| `suppliers` | 10 | Proveedores mexicanos. Proveedor 10 (Sensores y Control SA) inactivo. |
+| `supplier_receipts` | 30 | Distribuidas en los ultimos 60 dias. |
+| `production_requests` | 15 | Mix de DRAFT/SUBMITTED/APPROVED/REJECTED/CANCELLED. |
+| `production_request_items` | 27 | 1–2 items por orden, referenciando materiales reales. |
+
+**Contrasena de todos los usuarios:** `Admin1234!`
+
+### Notas tecnicas del seed
+- `users`: `ON CONFLICT (username) DO NOTHING`
+- `materials`: `ON CONFLICT (material_name) DO NOTHING`
+- `production_lines`: `ON CONFLICT (line_name) DO NOTHING`
+- `suppliers`: `ON CONFLICT (supplier_name) DO NOTHING`
+- `supplier_receipts`: `ON CONFLICT (receipt_id) DO NOTHING` (PK serial)
+- `production_requests`: `ON CONFLICT (request_id) DO NOTHING` (PK serial)
+- `production_request_items`: `ON CONFLICT (item_id) DO NOTHING` (PK serial `item_id`)

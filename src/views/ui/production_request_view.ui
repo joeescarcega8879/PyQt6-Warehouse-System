@@ -6,14 +6,16 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1157</width>
-    <height>650</height>
+    <width>1200</width>
+    <height>750</height>
    </rect>
   </property>
   <property name="windowTitle">
    <string>Form</string>
   </property>
-  <layout class="QGridLayout" name="gridLayout_3">
+  <layout class="QGridLayout" name="gridLayout_main">
+
+   <!-- ===== ROW 0: Header ===== -->
    <item row="0" column="0">
     <widget class="QLabel" name="label_user_name">
      <property name="sizePolicy">
@@ -87,10 +89,12 @@
      </property>
     </widget>
    </item>
-   <item row="2" column="0" colspan="3">
+
+   <!-- ===== ROW 1: Form — Production Line + Status ===== -->
+   <item row="1" column="0" colspan="3">
     <widget class="QGroupBox" name="groupBox">
      <property name="sizePolicy">
-      <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+      <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
        <horstretch>0</horstretch>
        <verstretch>0</verstretch>
       </sizepolicy>
@@ -98,9 +102,17 @@
      <property name="title">
       <string/>
      </property>
-     <layout class="QGridLayout" name="gridLayout">
-      <item row="2" column="0" colspan="2">
-       <widget class="QLabel" name="label_4">
+     <layout class="QGridLayout" name="gridLayout_form">
+
+      <!-- Production Line selector -->
+      <item row="0" column="0">
+       <widget class="QPushButton" name="btn_select_line">
+        <property name="minimumSize">
+         <size>
+          <width>0</width>
+          <height>32</height>
+         </size>
+        </property>
         <property name="font">
          <font>
           <family>Century Gothic</family>
@@ -108,11 +120,91 @@
          </font>
         </property>
         <property name="text">
-         <string>Quantity Received:</string>
+         <string>Select Production Line...</string>
         </property>
        </widget>
       </item>
-      <item row="0" column="0">
+      <item row="0" column="1" colspan="2">
+       <widget class="QLabel" name="label_line">
+        <property name="sizePolicy">
+         <sizepolicy hsizetype="Expanding" vsizetype="Preferred">
+          <horstretch>0</horstretch>
+          <verstretch>0</verstretch>
+         </sizepolicy>
+        </property>
+        <property name="font">
+         <font>
+          <family>Century Gothic</family>
+          <pointsize>11</pointsize>
+         </font>
+        </property>
+        <property name="text">
+         <string>0</string>
+        </property>
+        <property name="alignment">
+         <set>Qt::AlignCenter</set>
+        </property>
+       </widget>
+      </item>
+
+      <!-- Status label + combo -->
+      <item row="0" column="3">
+       <widget class="QLabel" name="label_status_lbl">
+        <property name="font">
+         <font>
+          <family>Century Gothic</family>
+          <pointsize>11</pointsize>
+         </font>
+        </property>
+        <property name="text">
+         <string>Status:</string>
+        </property>
+       </widget>
+      </item>
+      <item row="0" column="4">
+       <widget class="QComboBox" name="cbo_status">
+        <property name="minimumSize">
+         <size>
+          <width>160</width>
+          <height>32</height>
+         </size>
+        </property>
+        <property name="font">
+         <font>
+          <family>Century Gothic</family>
+          <pointsize>11</pointsize>
+         </font>
+        </property>
+        <item>
+         <property name="text">
+          <string>DRAFT</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string>SUBMITTED</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string>APPROVED</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string>REJECTED</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string>CANCELLED</string>
+         </property>
+        </item>
+       </widget>
+      </item>
+
+      <!-- Items sub-section: material selector + qty + unit + add btn -->
+      <item row="1" column="0">
        <widget class="QPushButton" name="btn_select_material">
         <property name="minimumSize">
          <size>
@@ -120,22 +212,18 @@
           <height>32</height>
          </size>
         </property>
+        <property name="font">
+         <font>
+          <family>Century Gothic</family>
+          <pointsize>11</pointsize>
+         </font>
+        </property>
         <property name="text">
          <string>Select Material...</string>
         </property>
        </widget>
       </item>
-      <item row="2" column="2">
-       <widget class="QLineEdit" name="input_quantity">
-        <property name="font">
-         <font>
-          <family>Century Gothic</family>
-          <pointsize>12</pointsize>
-         </font>
-        </property>
-       </widget>
-      </item>
-      <item row="0" column="1" colspan="2">
+      <item row="1" column="1">
        <widget class="QLabel" name="label_material">
         <property name="sizePolicy">
          <sizepolicy hsizetype="Expanding" vsizetype="Preferred">
@@ -157,27 +245,43 @@
         </property>
        </widget>
       </item>
-      <item row="0" column="3">
-       <widget class="QPushButton" name="btn_select_supplier">
+      <item row="1" column="2">
+       <widget class="QLabel" name="label_qty_lbl">
+        <property name="font">
+         <font>
+          <family>Century Gothic</family>
+          <pointsize>11</pointsize>
+         </font>
+        </property>
+        <property name="text">
+         <string>Quantity:</string>
+        </property>
+       </widget>
+      </item>
+      <item row="1" column="3">
+       <widget class="QLineEdit" name="input_quantity">
+        <property name="minimumSize">
+         <size>
+          <width>80</width>
+          <height>32</height>
+         </size>
+        </property>
+        <property name="font">
+         <font>
+          <family>Century Gothic</family>
+          <pointsize>11</pointsize>
+         </font>
+        </property>
+       </widget>
+      </item>
+      <item row="1" column="4">
+       <widget class="QPushButton" name="btn_add_item">
         <property name="minimumSize">
          <size>
           <width>0</width>
           <height>32</height>
          </size>
         </property>
-        <property name="text">
-         <string>Select Supplier...</string>
-        </property>
-       </widget>
-      </item>
-      <item row="0" column="4">
-       <widget class="QLabel" name="label_supplier">
-        <property name="sizePolicy">
-         <sizepolicy hsizetype="Expanding" vsizetype="Preferred">
-          <horstretch>0</horstretch>
-          <verstretch>0</verstretch>
-         </sizepolicy>
-        </property>
         <property name="font">
          <font>
           <family>Century Gothic</family>
@@ -185,52 +289,62 @@
          </font>
         </property>
         <property name="text">
-         <string>0</string>
-        </property>
-        <property name="alignment">
-         <set>Qt::AlignCenter</set>
+         <string>Add Item</string>
         </property>
        </widget>
       </item>
-      <item row="2" column="3">
-       <widget class="QLabel" name="label_11">
-        <property name="font">
-         <font>
-          <family>Century Gothic</family>
-          <pointsize>11</pointsize>
-         </font>
-        </property>
-        <property name="text">
-         <string>Notes:</string>
-        </property>
-       </widget>
-      </item>
-      <item row="2" column="4">
-       <widget class="QTextEdit" name="input_notes">
+
+      <!-- Items table (materials added to current request) -->
+      <item row="2" column="0" colspan="5">
+       <widget class="QTableWidget" name="tableItems">
         <property name="sizePolicy">
          <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
           <horstretch>0</horstretch>
           <verstretch>0</verstretch>
          </sizepolicy>
         </property>
+        <property name="minimumSize">
+         <size>
+          <width>0</width>
+          <height>100</height>
+         </size>
+        </property>
         <property name="maximumSize">
          <size>
           <width>16777215</width>
-          <height>30</height>
+          <height>120</height>
+         </size>
+        </property>
+       </widget>
+      </item>
+
+      <!-- Remove selected item from items table -->
+      <item row="3" column="4">
+       <widget class="QPushButton" name="btn_remove_item">
+        <property name="minimumSize">
+         <size>
+          <width>0</width>
+          <height>28</height>
          </size>
         </property>
         <property name="font">
          <font>
           <family>Century Gothic</family>
-          <pointsize>11</pointsize>
+          <pointsize>10</pointsize>
          </font>
+        </property>
+        <property name="text">
+         <string>Remove Item</string>
         </property>
        </widget>
       </item>
+
      </layout>
     </widget>
    </item>
-   <item row="3" column="0" colspan="3">
+
+   <!-- ===== ROW 2: Action buttons ===== -->
+   <item row="2" column="0" colspan="3">
     <widget class="QGroupBox" name="groupBox_2">
      <property name="sizePolicy">
       <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
@@ -238,19 +352,13 @@
        <verstretch>0</verstretch>
       </sizepolicy>
      </property>
-     <property name="minimumSize">
-      <size>
-       <width>0</width>
-       <height>0</height>
-      </size>
-     </property>
      <property name="styleSheet">
       <string notr="true"/>
      </property>
      <property name="title">
       <string/>
      </property>
-     <layout class="QGridLayout" name="gridLayout_2">
+     <layout class="QGridLayout" name="gridLayout_actions">
       <item row="0" column="0">
        <widget class="QPushButton" name="btn_save">
         <property name="sizePolicy">
@@ -265,13 +373,19 @@
           <height>32</height>
          </size>
         </property>
+        <property name="font">
+         <font>
+          <family>Century Gothic</family>
+          <pointsize>11</pointsize>
+         </font>
+        </property>
         <property name="text">
          <string>Save</string>
         </property>
        </widget>
       </item>
       <item row="0" column="1">
-       <widget class="QPushButton" name="btn_update">
+       <widget class="QPushButton" name="btn_submit">
         <property name="sizePolicy">
          <sizepolicy hsizetype="Minimum" vsizetype="Expanding">
           <horstretch>0</horstretch>
@@ -284,12 +398,93 @@
           <height>32</height>
          </size>
         </property>
+        <property name="font">
+         <font>
+          <family>Century Gothic</family>
+          <pointsize>11</pointsize>
+         </font>
+        </property>
         <property name="text">
-         <string>Update</string>
+         <string>Submit</string>
+        </property>
+       </widget>
+      </item>
+      <item row="0" column="2">
+       <widget class="QPushButton" name="btn_approve">
+        <property name="sizePolicy">
+         <sizepolicy hsizetype="Minimum" vsizetype="Expanding">
+          <horstretch>0</horstretch>
+          <verstretch>0</verstretch>
+         </sizepolicy>
+        </property>
+        <property name="minimumSize">
+         <size>
+          <width>0</width>
+          <height>32</height>
+         </size>
+        </property>
+        <property name="font">
+         <font>
+          <family>Century Gothic</family>
+          <pointsize>11</pointsize>
+         </font>
+        </property>
+        <property name="text">
+         <string>Approve</string>
         </property>
        </widget>
       </item>
       <item row="0" column="3">
+       <widget class="QPushButton" name="btn_reject">
+        <property name="sizePolicy">
+         <sizepolicy hsizetype="Minimum" vsizetype="Expanding">
+          <horstretch>0</horstretch>
+          <verstretch>0</verstretch>
+         </sizepolicy>
+        </property>
+        <property name="minimumSize">
+         <size>
+          <width>0</width>
+          <height>32</height>
+         </size>
+        </property>
+        <property name="font">
+         <font>
+          <family>Century Gothic</family>
+          <pointsize>11</pointsize>
+         </font>
+        </property>
+        <property name="text">
+         <string>Reject</string>
+        </property>
+       </widget>
+      </item>
+      <item row="0" column="4">
+       <widget class="QPushButton" name="btn_deactivate">
+        <property name="sizePolicy">
+         <sizepolicy hsizetype="Minimum" vsizetype="Expanding">
+          <horstretch>0</horstretch>
+          <verstretch>0</verstretch>
+         </sizepolicy>
+        </property>
+        <property name="minimumSize">
+         <size>
+          <width>0</width>
+          <height>32</height>
+         </size>
+        </property>
+        <property name="font">
+         <font>
+          <family>Century Gothic</family>
+          <pointsize>11</pointsize>
+         </font>
+        </property>
+        <property name="text">
+         <string>Deactivate</string>
+        </property>
+       </widget>
+      </item>
+      <item row="0" column="5">
        <widget class="QPushButton" name="btn_cancel">
         <property name="sizePolicy">
          <sizepolicy hsizetype="Minimum" vsizetype="Expanding">
@@ -303,56 +498,6 @@
           <height>32</height>
          </size>
         </property>
-        <property name="text">
-         <string>Cancel</string>
-        </property>
-       </widget>
-      </item>
-      <item row="0" column="2">
-       <widget class="QPushButton" name="btn_delete">
-        <property name="sizePolicy">
-         <sizepolicy hsizetype="Minimum" vsizetype="Expanding">
-          <horstretch>0</horstretch>
-          <verstretch>0</verstretch>
-         </sizepolicy>
-        </property>
-        <property name="minimumSize">
-         <size>
-          <width>0</width>
-          <height>32</height>
-         </size>
-        </property>
-        <property name="text">
-         <string>Delete</string>
-        </property>
-       </widget>
-      </item>
-     </layout>
-    </widget>
-   </item>
-   <item row="4" column="0" colspan="3">
-    <widget class="QGroupBox" name="groupBox_3">
-     <property name="sizePolicy">
-      <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
-       <horstretch>0</horstretch>
-       <verstretch>0</verstretch>
-      </sizepolicy>
-     </property>
-     <property name="minimumSize">
-      <size>
-       <width>0</width>
-       <height>0</height>
-      </size>
-     </property>
-     <property name="styleSheet">
-      <string notr="true"/>
-     </property>
-     <property name="title">
-      <string/>
-     </property>
-     <layout class="QGridLayout" name="gridLayout_4">
-      <item row="0" column="0">
-       <widget class="QLabel" name="label_5">
         <property name="font">
          <font>
           <family>Century Gothic</family>
@@ -360,7 +505,40 @@
          </font>
         </property>
         <property name="text">
-         <string>Search Receipt:</string>
+         <string>Cancel</string>
+        </property>
+       </widget>
+      </item>
+     </layout>
+    </widget>
+   </item>
+
+   <!-- ===== ROW 3: Search bar ===== -->
+   <item row="3" column="0" colspan="3">
+    <widget class="QGroupBox" name="groupBox_3">
+     <property name="sizePolicy">
+      <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+       <horstretch>0</horstretch>
+       <verstretch>0</verstretch>
+      </sizepolicy>
+     </property>
+     <property name="styleSheet">
+      <string notr="true"/>
+     </property>
+     <property name="title">
+      <string/>
+     </property>
+     <layout class="QGridLayout" name="gridLayout_search">
+      <item row="0" column="0">
+       <widget class="QLabel" name="label_search_lbl">
+        <property name="font">
+         <font>
+          <family>Century Gothic</family>
+          <pointsize>11</pointsize>
+         </font>
+        </property>
+        <property name="text">
+         <string>Search Request:</string>
         </property>
        </widget>
       </item>
@@ -383,7 +561,9 @@
      </layout>
     </widget>
    </item>
-   <item row="5" column="0" colspan="3">
+
+   <!-- ===== ROW 4: Main requests table ===== -->
+   <item row="4" column="0" colspan="3">
     <widget class="QTableWidget" name="tableWidget">
      <property name="sizePolicy">
       <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
@@ -393,8 +573,23 @@
      </property>
     </widget>
    </item>
+
   </layout>
  </widget>
+ <tabstops>
+  <tabstop>btn_select_line</tabstop>
+  <tabstop>cbo_status</tabstop>
+  <tabstop>btn_select_material</tabstop>
+  <tabstop>input_quantity</tabstop>
+  <tabstop>btn_add_item</tabstop>
+  <tabstop>btn_save</tabstop>
+  <tabstop>btn_submit</tabstop>
+  <tabstop>btn_approve</tabstop>
+  <tabstop>btn_reject</tabstop>
+  <tabstop>btn_cancel</tabstop>
+  <tabstop>input_search</tabstop>
+  <tabstop>tableWidget</tabstop>
+ </tabstops>
  <resources/>
  <connections/>
 </ui>

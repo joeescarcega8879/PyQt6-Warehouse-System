@@ -35,7 +35,7 @@ class MaterialPresenter(BasePresenter):
 
         try:
             if self._is_editing:
-                if self._current_material_id is None:
+                if self._current_entity_id is None:
                     self._emit_error("Please select a valid material to edit")
                     return
                 
@@ -51,7 +51,7 @@ class MaterialPresenter(BasePresenter):
                     return
 
                 success = MaterialModel.update_material(
-                    material_id=self._current_material_id,
+                    material_id=self._current_entity_id,
                     name=name,
                     description=description,
                     unit=unit,
@@ -63,7 +63,7 @@ class MaterialPresenter(BasePresenter):
                         action=AuditDefinition.MATERIALS_EDITED,
                         success=True,
                         entity="Material",
-                        entity_id=self._current_material_id,
+                        entity_id=self._current_entity_id,
                         meta={"name": name, "unit": unit, "description": description}
                     )
 
@@ -116,7 +116,6 @@ class MaterialPresenter(BasePresenter):
             return
 
         self._enter_edit_mode(data["id"])
-        self._current_material_id = data["id"]
         self.view.set_form_data(data)
 
     def _handle_delete(self) -> None:
@@ -185,7 +184,6 @@ class MaterialPresenter(BasePresenter):
 
     def _post_save_cleanup(self) -> None:
         self._clear_form_and_reset_state()
-        self._current_material_id = None
         self._reload_materials()
 
     def _reload_materials(self) -> None:
