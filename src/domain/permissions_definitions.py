@@ -10,6 +10,7 @@ class Permission:
     PRODUCTION_REQUESTS_SUBMIT = "production.requests.submit"
     PRODUCTION_REQUESTS_APPROVE = "production.requests.approve"
     PRODUCTION_REQUESTS_VIEW = "production.requests.view"
+    PRODUCTION_REQUESTS_DEACTIVATE = "production.requests.deactivate"
 
     USERS_CREATE = "users.create"
     USERS_EDIT = "users.edit"

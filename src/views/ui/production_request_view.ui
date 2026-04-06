@@ -14,8 +14,6 @@
    <string>Form</string>
   </property>
   <layout class="QGridLayout" name="gridLayout_main">
-
-   <!-- ===== ROW 0: Header ===== -->
    <item row="0" column="0">
     <widget class="QLabel" name="label_user_name">
      <property name="sizePolicy">
@@ -34,7 +32,7 @@
       <string/>
      </property>
      <property name="alignment">
-      <set>Qt::AlignCenter</set>
+      <set>Qt::AlignmentFlag::AlignCenter</set>
      </property>
     </widget>
    </item>
@@ -56,7 +54,7 @@
       <string/>
      </property>
      <property name="alignment">
-      <set>Qt::AlignCenter</set>
+      <set>Qt::AlignmentFlag::AlignCenter</set>
      </property>
     </widget>
    </item>
@@ -89,8 +87,6 @@
      </property>
     </widget>
    </item>
-
-   <!-- ===== ROW 1: Form — Production Line + Status ===== -->
    <item row="1" column="0" colspan="3">
     <widget class="QGroupBox" name="groupBox">
      <property name="sizePolicy">
@@ -103,8 +99,6 @@
       <string/>
      </property>
      <layout class="QGridLayout" name="gridLayout_form">
-
-      <!-- Production Line selector -->
       <item row="0" column="0">
        <widget class="QPushButton" name="btn_select_line">
         <property name="minimumSize">
@@ -124,30 +118,6 @@
         </property>
        </widget>
       </item>
-      <item row="0" column="1" colspan="2">
-       <widget class="QLabel" name="label_line">
-        <property name="sizePolicy">
-         <sizepolicy hsizetype="Expanding" vsizetype="Preferred">
-          <horstretch>0</horstretch>
-          <verstretch>0</verstretch>
-         </sizepolicy>
-        </property>
-        <property name="font">
-         <font>
-          <family>Century Gothic</family>
-          <pointsize>11</pointsize>
-         </font>
-        </property>
-        <property name="text">
-         <string>0</string>
-        </property>
-        <property name="alignment">
-         <set>Qt::AlignCenter</set>
-        </property>
-       </widget>
-      </item>
-
-      <!-- Status label + combo -->
       <item row="0" column="3">
        <widget class="QLabel" name="label_status_lbl">
         <property name="font">
@@ -202,8 +172,6 @@
         </item>
        </widget>
       </item>
-
-      <!-- Items sub-section: material selector + qty + unit + add btn -->
       <item row="1" column="0">
        <widget class="QPushButton" name="btn_select_material">
         <property name="minimumSize">
@@ -241,7 +209,7 @@
          <string>0</string>
         </property>
         <property name="alignment">
-         <set>Qt::AlignCenter</set>
+         <set>Qt::AlignmentFlag::AlignCenter</set>
         </property>
        </widget>
       </item>
@@ -293,8 +261,6 @@
         </property>
        </widget>
       </item>
-
-      <!-- Items table (materials added to current request) -->
       <item row="2" column="0" colspan="5">
        <widget class="QTableWidget" name="tableItems">
         <property name="sizePolicy">
@@ -317,8 +283,6 @@
         </property>
        </widget>
       </item>
-
-      <!-- Remove selected item from items table -->
       <item row="3" column="4">
        <widget class="QPushButton" name="btn_remove_item">
         <property name="minimumSize">
@@ -338,12 +302,31 @@
         </property>
        </widget>
       </item>
-
+      <item row="0" column="1">
+       <widget class="QLabel" name="label_line">
+        <property name="sizePolicy">
+         <sizepolicy hsizetype="Expanding" vsizetype="Preferred">
+          <horstretch>0</horstretch>
+          <verstretch>0</verstretch>
+         </sizepolicy>
+        </property>
+        <property name="font">
+         <font>
+          <family>Century Gothic</family>
+          <pointsize>11</pointsize>
+         </font>
+        </property>
+        <property name="text">
+         <string>0</string>
+        </property>
+        <property name="alignment">
+         <set>Qt::AlignmentFlag::AlignCenter</set>
+        </property>
+       </widget>
+      </item>
      </layout>
     </widget>
    </item>
-
-   <!-- ===== ROW 2: Action buttons ===== -->
    <item row="2" column="0" colspan="3">
     <widget class="QGroupBox" name="groupBox_2">
      <property name="sizePolicy">
@@ -512,8 +495,6 @@
      </layout>
     </widget>
    </item>
-
-   <!-- ===== ROW 3: Search bar ===== -->
    <item row="3" column="0" colspan="3">
     <widget class="QGroupBox" name="groupBox_3">
      <property name="sizePolicy">
@@ -561,8 +542,6 @@
      </layout>
     </widget>
    </item>
-
-   <!-- ===== ROW 4: Main requests table ===== -->
    <item row="4" column="0" colspan="3">
     <widget class="QTableWidget" name="tableWidget">
      <property name="sizePolicy">
@@ -573,7 +552,6 @@
      </property>
     </widget>
    </item>
-
   </layout>
  </widget>
  <tabstops>

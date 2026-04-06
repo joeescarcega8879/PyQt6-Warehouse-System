@@ -12,6 +12,7 @@ from src.views.line_view import LineView
 from src.views.change_password_view import ChangePasswordView
 from src.views.receipt_view import ReceiptView
 from src.views.supplier_view import SupplierView
+from src.views.production_request_view import ProductionRequestView
 from src.views.generic_view import GenericView
 
 from src.common.style_manager import StyleManager
@@ -27,6 +28,7 @@ from src.presenters.change_password_presenter import ChangePasswordPresenter
 from src.presenters.production_line_presenter import LinePresenter
 from src.presenters.supplier_receipt_presenter import SupplierReceiptPresenter
 from src.presenters.supplier_presenter import SupplierPresenter
+from src.presenters.production_request_presenter import ProductionRequestPresenter
 from src.presenters.generic_presenter import GenericPresenter
 
 
@@ -202,7 +204,15 @@ class MainApplication(QObject):
 
         sub_window = QMdiSubWindow()
         self.main_view.open_child_form(self.supplier_view, sub_window)
+        
+    
+    def open_request_form(self) -> None:
+        self.request_view = ProductionRequestView()
+ 
+        self.request_presenter = ProductionRequestPresenter(self.request_view, main_app=self, current_user=self.current_user, status_handler=self.status_bar_controller.show_message)
 
+        sub_window = QMdiSubWindow()
+        self.main_view.open_child_form(self.request_view, sub_window)
 
 def main():
     app = QApplication(sys.argv)

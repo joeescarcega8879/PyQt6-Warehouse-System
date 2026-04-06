@@ -7,8 +7,14 @@ class AuditDefinition(StrEnum):
     MATERIALS_DELETED = "materials.deleted"
 
     PRODUCTION_REQUESTS_CREATED = "production.requests.created"
+    PRODUCTION_REQUESTS_EDITED = "production.requests.edited"
+    PRODUCTION_REQUESTS_SUBMITTED = "production.requests.submitted"
+    PRODUCTION_REQUESTS_REJECTED = "production.requests.rejected"
+    PRODUCTION_REQUESTS_CANCELED = "production.requests.canceled"
     PRODUCTION_REQUESTS_APPROVED = "production.requests.approved"
     PRODUCTION_REQUESTS_VIEWED = "production.requests.viewed"
+    PRODUCTION_REQUESTS_DEACTIVATED = "production.requests.deactivated"
+    PRODUCTION_REQUESTS_DENIED = "production.requests.denied"
 
     USERS_CREATED = "users.created"
     USERS_EDITED = "users.edited"
@@ -21,6 +27,9 @@ class AuditDefinition(StrEnum):
     RECEIPTS_EDITED = "receipts.edited"
     RECEIPTS_DELETED = "receipts.deleted"
 
-    SUPPLIER_CREATED = "supplier.created"
-    SUPPLIER_EDITED = "supplier.edited"
+    SUPPLIERS_CREATED = "suppliers.created"
+    SUPPLIERS_EDITED = "suppliers.edited"
+    SUPPLIERS_DELETED = "suppliers.deleted"
+    
+    GENERIC_ENTITY_DENIED = "generic.entity.denied"
     

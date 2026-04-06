@@ -12,3 +12,4 @@ class MainPresenter:
         self.view.form_line_signal.connect(self.main_app.open_line_form)
         self.view.form_receipt_signal.connect(self.main_app.open_receipt_form)
         self.view.form_supplier_signal.connect(self.main_app.open_supplier_form)
+        self.view.form_request_signal.connect(self.main_app.open_request_form)

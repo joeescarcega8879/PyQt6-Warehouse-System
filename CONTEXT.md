@@ -41,17 +41,18 @@ PyQt6-Warehouse-System/
 │   │   ├── supplier_presenter.py          # Logica de proveedores
 │   │   ├── supplier_receipt_presenter.py  # Logica de recepciones
 │   │   ├── change_password_presenter.py   # Cambio de contrasena (hereda BasePresenter)
+│   │   ├── production_request_presenter.py # Logica de ordenes de produccion (parcial)
 │   │   └── generic_presenter.py           # Selector generico de entidades
 │   │
 │   ├── views/                   # Capa de UI (PyQt6 Widgets)
 │   │   ├── login_view.py        # Pantalla de login
-│   │   ├── main_view.py         # Ventana principal MDI
+│   │   ├── main_view.py         # Ventana principal MDI con panel lateral scrollable
 │   │   ├── material_view.py     # Formulario de materiales
 │   │   ├── user_view.py         # Formulario de usuarios
 │   │   ├── line_view.py         # Formulario de lineas de produccion
 │   │   ├── supplier_view.py     # Formulario de proveedores
 │   │   ├── receipt_view.py      # Formulario de recepciones
-│   │   ├── production_request_view.py  # Formulario de ordenes de produccion (sin presenter aun)
+│   │   ├── production_request_view.py  # Formulario de ordenes de produccion (parcial)
 │   │   ├── change_password_view.py     # Dialog de cambio de contrasena
 │   │   ├── generic_view.py      # Vista selector generica (dialog)
 │   │   └── ui/                  # Archivos .ui de Qt Designer
@@ -97,8 +98,9 @@ PyQt6-Warehouse-System/
 │   │       └── 002_refactor_supplier_receipts.sql
 │   │
 │   ├── assets/                  # Recursos estaticos
-│   │   ├── styles.css           # Estilos globales QSS
+│   │   ├── styles.css           # Estilos globales QSS — tema oscuro gris neutro
 │   │   └── icons/               # Iconos de la aplicacion (PNG)
+│   │                            # Pendiente: IMG-Settings.png
 │   │
 │   └── config/                  # Configuracion de la aplicacion
 │       ├── settings.py          # DatabaseConfig / AppConfig / SecurityConfig (dotenv)
@@ -121,9 +123,11 @@ PyQt6-Warehouse-System/
 │
 ├── logs/                        # Logs rotativos por fecha (app_YYYYMMDD.log)
 │
-├── schema.sql                   # DDL completo — crea toda la estructura desde cero
-├── reset_db.sql                 # DROP + schema.sql — limpieza para desarrollo/pruebas
-├── seed_data.sql                # Datos de prueba idempotentes (ON CONFLICT DO NOTHING)
+├── docs/                        # Archivos SQL de base de datos
+│   ├── schema.sql               # DDL completo — crea toda la estructura desde cero
+│   ├── reset_db.sql             # DROP + schema.sql — limpieza para desarrollo/pruebas
+│   └── seed_data.sql            # Datos de prueba idempotentes (ON CONFLICT DO NOTHING)
+│
 ├── .env.example                 # Plantilla de variables de entorno
 ├── .env                         # Variables de entorno locales (NO commitear)
 ├── requirements.txt             # Dependencias Python
@@ -176,6 +180,7 @@ BasePresenter
 ├── SupplierPresenter
 ├── SupplierReceiptPresenter
 ├── ChangePasswordPresenter
+├── ProductionRequestPresenter
 ├── GenericPresenter
 ├── LoginPresenter
 └── MainPresenter
@@ -219,7 +224,7 @@ almacena siempre en `_current_entity_id` (no en variables especificas por modulo
 - [x] Busqueda por ID y por nombre
 - [x] Crear proveedor (nombre, departamento, telefono, email, direccion, notas)
 - [x] Editar proveedor (incluye activar/desactivar via campo `is_active`)
-- [ ] Eliminar proveedor (sin implementar: no hay boton, ni handler, ni metodo en modelo)
+- [x] Eliminar proveedor — **decision de diseno: no aplica**. El alta/baja se gestiona mediante `is_active`
 - [x] Auditoria de create / edit
 
 ### Modulo Recepciones de Proveedor
@@ -242,19 +247,45 @@ almacena siempre en `_current_entity_id` (no en variables especificas por modulo
 - [x] Busqueda por ID y por nombre
 - [x] Crear usuario (username, email, rol, contrasena)
 - [x] Editar usuario
-- [x] Cambio de contrasena del usuario actual
-- [ ] Cambio de contrasena de un usuario seleccionado (el ID del usuario seleccionado esta comentado, siempre abre para el usuario actual)
+- [ ] Cambio de contrasena — el usuario comun NO puede cambiar su propia contrasena desde la UI; debe solicitarlo a un `admin` o `supervisor`, quienes pueden resetear la contrasena de cualquier usuario seleccionado
 - [x] Auditoria de create / edit / password change
 
 ### Modulo Ordenes de Produccion — Vista
-- [x] Vista (`ProductionRequestView`) implementada con todos los signals y metodos publicos
 - [x] Archivo `.ui` (`production_request_view.ui`) con layout completo
-- [x] Tabla interna de items (`tableItems`) con validaciones de duplicado, cantidad y material
-- [x] Botones de flujo de estados: Save, Submit, Approve, Reject, Deactivate
-- [x] Dialogs de confirmacion para acciones irreversibles (Submit, Approve, Reject, Deactivate)
-- [x] Metodos de control de visibilidad por permiso: `enable_create`, `enable_submit`, `enable_approve`, `enable_deactivate`
-- [ ] Presenter (`ProductionRequestPresenter`) — pendiente
-- [ ] Registro en `main_application.py` y boton en menu principal — pendiente
+- [x] Signals declarados: `save_requested`, `submit_requested`, `approve_requested`, `reject_requested`, `deactivate_requested`, `cancel_requested`, `close_requested`, `selected_line`, `selected_material`, `add_item_requested`, `remove_item_requested`
+- [x] `btn_save`, `btn_cancel`, `btn_close`, `btn_select_line`, `btn_select_material`, `btn_add_item` conectados
+- [x] `display_selected_material(material)` y `display_selected_line(line)` implementados
+- [x] `get_selected_material_and_line_info()` — retorna dict con material_id, line_id, quantity
+- [x] `display_added_item(item)` — agrega fila a `tableItems` eficientemente (solo la fila nueva)
+- [x] `tableItems` configurado con 3 columnas: Material ID, Line ID, Quantity
+- [x] `self.material_id` y `self.line_id` inicializados en `__init__` como `None`
+- [ ] `btn_submit`, `btn_approve`, `btn_reject`, `btn_deactivate` — comentados, sin conectar
+- [ ] `btn_remove_item` — comentado, sin conectar
+- [ ] `get_form_data()`, `load_requests()`, `clear_form()` — pendientes
+
+### Modulo Ordenes de Produccion — Presenter
+- [x] Clase `ProductionRequestPresenter` creada, hereda `BasePresenter`
+- [x] Registrado en `main_application.py` — `open_request_form()` implementado
+- [x] `_connect_signals()` — conecta `selected_material`, `selected_line`, `add_item_requested`
+- [x] `_handling_selected_material()` — verifica permiso, abre GenericView para material
+- [x] `_handling_selected_line()` — verifica permiso, abre GenericView para linea
+- [x] `_on_selected_material()` / `_on_selected_line()` — callbacks de GenericView, llaman display en view
+- [x] `_on_add_item_requested()` — verifica permiso, lee datos de view, valida, llama `display_added_item`
+- [x] `_selected_material` y `_selected_line` como atributos de estado (`dict | None`)
+- [ ] `_load_init_data()` — pendiente
+- [ ] `_handle_save()` — pendiente (crear DRAFT con items)
+- [ ] `_handle_submit()` — pendiente (DRAFT → SUBMITTED)
+- [ ] `_handle_approve()` — pendiente (SUBMITTED → APPROVED)
+- [ ] `_handle_reject()` — pendiente (SUBMITTED → REJECTED)
+- [ ] `_handle_deactivate()` — pendiente (marcar is_active = FALSE)
+- [ ] `_handle_cancel()` — pendiente
+- [ ] `_apply_permissions()` — pendiente (ocultar botones segun rol)
+
+### Modulo Ordenes de Produccion — Modelo
+- [x] `create_request` (con items, transaccion atomica) — completo
+- [x] `update_status_request` (DRAFT → SUBMITTED → APPROVED / REJECTED / CANCELLED) — completo
+- [x] `deactivate_request` — completo
+- [x] `get_all_requests` / `get_request_by_id` — completos
 
 ### Selector Generico
 - [x] Dialog reutilizable para seleccionar Material, Proveedor o Linea de Produccion
@@ -263,8 +294,19 @@ almacena siempre en `_current_entity_id` (no en variables especificas por modulo
 
 ### Auditoria
 - [x] Modelo de auditoria con escritura a BD
-- [x] Definiciones de eventos auditables (`AuditDefinition`)
+- [x] Definiciones de eventos auditables (`AuditDefinition`) — completas para todos los modulos
 - [x] Integrado en presenters de: materiales, usuarios, lineas, recepciones, proveedores
+- [x] Eventos de production requests: CREATED, EDITED, SUBMITTED, APPROVED, REJECTED, CANCELED, VIEWED, DEACTIVATED, DENIED
+- [x] Evento generico `GENERIC_ENTITY_DENIED` para accesos denegados reutilizable
+- [ ] Auditoria de production requests integrada en presenter (pendiente junto con handlers)
+
+### Permisos — Production Requests
+- [x] `PRODUCTION_REQUESTS_VIEW` — ADMIN, SUPERVISOR, LEADER, VIEWER
+- [x] `PRODUCTION_REQUESTS_CREATE` — ADMIN, SUPERVISOR, LEADER
+- [x] `PRODUCTION_REQUESTS_EDIT` — ADMIN, SUPERVISOR, LEADER
+- [x] `PRODUCTION_REQUESTS_SUBMIT` — ADMIN, SUPERVISOR, LEADER
+- [x] `PRODUCTION_REQUESTS_APPROVE` — ADMIN, SUPERVISOR (cubre tambien REJECT)
+- [x] `PRODUCTION_REQUESTS_DEACTIVATE` — ADMIN, SUPERVISOR
 
 ### Infraestructura
 - [x] Conexion PostgreSQL via `QSqlDatabase` (QPSQL driver)
@@ -272,31 +314,53 @@ almacena siempre en `_current_entity_id` (no en variables especificas por modulo
 - [x] Configuracion via `.env` (dotenv) con validacion al inicio
 - [x] Logging rotativo por fecha (`logs/app_YYYYMMDD.log`)
 - [x] Estilos globales QSS cargados desde `src/assets/styles.css`
-- [x] `StatusBarController`: mensajes de estado coloreados (SUCCESS / ERROR)
+- [x] `StatusBarController`: mensajes de estado coloreados (SUCCESS / ERROR / WARNING)
 - [x] MDI: cada formulario abre como `QMdiSubWindow`
+
+### UI — Tema Visual
+- [x] Tema oscuro gris neutro (`#2d2d2d` base, `#383838` surface, `#4a9eff` acento azul acero)
+- [x] Botones flat con borde sutil — semantica por color (primario, peligro, positivo, advertencia)
+- [x] `btn_save` / `btn_login` — azul acero solido (accion principal)
+- [x] `btn_approve` / `btn_submit` — verde sutil
+- [x] `btn_reject` — ambar
+- [x] `btn_delete` / `btn_deactivate` — rojo sutil
+- [x] Status bar coherente con el tema: SUCCESS verde oscuro, ERROR rojo oscuro, WARNING ambar oscuro
+- [x] Scrollbars delgadas (8px) estilo moderno
+
+### UI — Panel Lateral (main_view)
+- [x] Panel lateral con `QScrollArea` — scroll vertical aparece automaticamente si hay overflow
+- [x] Scroll horizontal desactivado siempre
+- [x] `btn_toggle` fuera del scroll — siempre visible al colapsar/expandir
+- [x] Botones organizados en 3 categorias con labels: **Produccion**, **Almacen**, **Administracion**
+- [x] Labels de categoria se ocultan al colapsar el panel (modo icono)
+- [x] `btn_settings` agregado en categoria Administracion con signal `form_settings_signal`
+- [x] Toggle refactorizado con `_BUTTON_LABELS` y `_CATEGORY_LABELS` (DRY, sin repeticion)
+- [x] Estilos CSS para labels de categoria (gris oscuro, 8pt, letra espaciada)
+- [x] Color del `QMdiArea` actualizado a `#2d2d2d` coherente con el tema oscuro
+- [ ] Vista/Presenter de Settings — pendiente (signal declarado, no conectado en `main_application.py`)
+- [ ] Icono `IMG-Settings.png` — pendiente de agregar en `src/assets/icons/`
 
 ---
 
 ## Funcionalidades Pendientes / Incompletas
 
 ### Modulo Ordenes de Produccion (Production Requests)
-- [ ] **Presenter pendiente** — `ProductionRequestPresenter` — el modelo esta completo con:
-  - `create_request` (con items, transaccion atomica)
-  - `update_status_request` (DRAFT → SUBMITTED → APPROVED / REJECTED / CANCELLED)
-  - `deactivate_request`
-  - `get_all_requests` / `get_request_by_id`
-- [x] Vista implementada (`production_request_view.py` + `production_request_view.ui`)
-- [x] Permisos definidos (`PRODUCTION_REQUESTS_*`)
-- [x] Eventos de auditoria definidos (`PRODUCTION_REQUESTS_CREATED`, etc.)
-- [x] Enum de estados definido (`ProductionRequestStatus`)
-- [ ] **Falta:** presenter, conexion en `main_application.py`, boton activo en menu principal
+- [ ] **Presenter parcialmente implementado** — faltan handlers de save, submit, approve, reject, deactivate, cancel, load_init_data, apply_permissions
+- [ ] Vista — conectar `btn_submit`, `btn_approve`, `btn_reject`, `btn_deactivate`, `btn_remove_item`
+- [ ] Vista — implementar `get_form_data()`, `load_requests()`, `clear_form()`
+- [ ] Auditoria integrada en el presenter
 
-### Modulo Recepciones / Proveedores
-- [ ] Eliminar proveedor — sin boton, handler ni metodo en modelo
+### Modulo Settings
+- [ ] Vista de configuracion — pendiente de crear (View + Presenter + `.ui`)
+- [ ] Selector de tema (dark/light) con recarga de estilos en caliente via `StyleManager`
+- [ ] Registrar `open_settings_form()` en `main_application.py`
+- [ ] Icono `IMG-Settings.png` pendiente en `src/assets/icons/`
+
+### Modulo Recepciones
 - [ ] Eliminar recepcion — metodo en modelo existe pero sin boton ni handler en vista/presenter
 
-### Bugs Conocidos
-- Todos los bugs documentados anteriormente fueron corregidos.
+### Modulo Usuarios
+- [ ] Cambio de contrasena — el usuario comun NO puede cambiar su propia contrasena desde la UI; debe solicitarlo a un `admin` o `supervisor`, quienes pueden resetear la contrasena de cualquier usuario seleccionado
 
 ### Pruebas
 - [ ] Tests de presenters (ningun presenter tiene cobertura de tests)
@@ -306,13 +370,39 @@ almacena siempre en `_current_entity_id` (no en variables especificas por modulo
 - [ ] Tests para `SupplierReceiptModel`
 - [ ] Tests para `ProductionLineModel`
 
-### Mejoras de Arquitectura
-- [x] Todos los presenters de modulo migrados a `BasePresenter` — incluido `ChangePasswordPresenter`
-- [x] Variable `_current_entity_id` unificada en todos los presenters (eliminado `_current_material_id` y otros)
+### Mejoras Pendientes
+- [ ] `_apply_permissions()` en `ProductionRequestPresenter` — ocultar botones segun rol
+- [ ] `OPERATOR` sin ningun permiso de production requests — revisar si deberia tener VIEW o CREATE
+
+---
+
+## Bugs Resueltos (historial)
+
+- [x] Typo `_conect_signals` (una `n`) en `ProductionRequestPresenter` — corregido a `_connect_signals`
+- [x] `handling_selected_material` sin prefijo `_` — corregido a `_handling_selected_material`
+- [x] Audit log de permiso denegado usaba `PRODUCTION_REQUESTS_CREATED` — corregido a `PRODUCTION_REQUESTS_DENIED`
+- [x] `AuditDefinition` con nombres inconsistentes (`REQUEST` singular vs `REQUESTS` plural) — corregidos a plural
+- [x] `PRODUCTION_REQUESTS_CANCELED` alineado a `canceled` (string value) — consistente con el resto
+- [x] `SUPPLIER_*` corregidos a `SUPPLIERS_*` (plural) y agregado `SUPPLIERS_DELETED`
+- [x] `PRODUCTION_REQUESTS_SUBMIT` y `PRODUCTION_REQUESTS_EDIT` sin roles en `permissions.py` — corregido
+- [x] `tableItems` sin columnas configuradas — corregido con `setColumnCount(3)` en `initialize_components`
+- [x] `display_added_item` repintaba toda la tabla en cada item — refactorizado para agregar solo la fila nueva
+- [x] `getattr` innecesario en `get_selected_material_and_line_info` — simplificado a acceso directo
+- [x] `quantity` retornaba `"N/A"` en lugar de `None` cuando el campo estaba vacio — corregido a `None`
+
+---
+
+## Mejoras de Arquitectura Aplicadas
+
+- [x] Todos los presenters de modulo migrados a `BasePresenter` — incluido `ChangePasswordPresenter` y `ProductionRequestPresenter`
+- [x] Variable `_current_entity_id` unificada en todos los presenters
 - [x] `python-dotenv` en `requirements.txt` (version 1.1.0)
-- [x] `schema.sql` creado con DDL completo del esquema (todas las tablas, sequences, constraints, indices)
+- [x] `schema.sql` creado con DDL completo del esquema
 - [x] `reset_db.sql` creado para limpieza y recreacion de BD en desarrollo/pruebas
 - [x] Migracion `002_refactor_supplier_receipts.sql` documentada en `src/database/migrations/README.md`
+- [x] Toggle del panel lateral refactorizado con diccionarios (DRY) en lugar de lineas repetidas
+- [x] Permiso `PRODUCTION_REQUESTS_DEACTIVATE` agregado con roles ADMIN, SUPERVISOR
+- [x] Evento `GENERIC_ENTITY_DENIED` en `AuditDefinition` para accesos denegados reutilizables
 
 ---
 
@@ -382,6 +472,9 @@ Cualquier estado               ──cancelled──>  CANCELLED
 - Los archivos `.ui` de Qt Designer se cargan en runtime via `uic.loadUi()` en las vistas. La ruta se construye con `Path(__file__).resolve().parent / "ui" / "nombre.ui"`.
 - Todos los presenters de modulo deben heredar `BasePresenter` y usar `_current_entity_id` para almacenar el ID de la entidad en edicion.
 - Los iconos de la aplicacion viven en `src/assets/icons/`. El helper `_icon(filename)` disponible en cada vista construye el `QIcon` con la ruta correcta.
+- Para agregar un nuevo boton al panel lateral: agregarlo en `main_view.ui` dentro de `scroll_content`, declarar su signal en `MainView`, agregarlo a `_BUTTON_LABELS` en `main_view.py` y conectarlo en `initializeComponents`.
+- Para agregar una nueva categoria al panel lateral: agregar un `QLabel` con `objectName` `lbl_cat_<nombre>` en el `.ui` y registrarlo en `_CATEGORY_LABELS` en `main_view.py`.
+- El tema visual se carga desde `src/assets/styles.css` via `StyleManager`. Para cambiar el tema en caliente recargar el stylesheet con `StyleManager.load_global_styles()` + `StyleManager.apply_to_app(app)`.
 
 ---
 
@@ -391,20 +484,20 @@ Cualquier estado               ──cancelled──>  CANCELLED
 
 ```bash
 # Solo estructura limpia (sin datos)
-psql -h localhost -U <DB_USER> -d <DB_NAME> -f reset_db.sql
+psql -h localhost -U <DB_USER> -d <DB_NAME> -f docs/reset_db.sql
 
 # Estructura + datos de prueba
-psql -h localhost -U <DB_USER> -d <DB_NAME> -f reset_db.sql
-psql -h localhost -U <DB_USER> -d <DB_NAME> -f seed_data.sql
+psql -h localhost -U <DB_USER> -d <DB_NAME> -f docs/reset_db.sql
+psql -h localhost -U <DB_USER> -d <DB_NAME> -f docs/seed_data.sql
 ```
 
-### Archivos SQL en la raiz del proyecto
+### Archivos SQL en la carpeta docs/
 
 | Archivo | Proposito |
 |---|---|
-| `schema.sql` | DDL completo — crea todas las tablas, sequences, constraints e indices desde cero |
-| `reset_db.sql` | DROP CASCADE de todas las tablas + `\i schema.sql` — uso en desarrollo/pruebas |
-| `seed_data.sql` | Datos de prueba idempotentes (`ON CONFLICT DO NOTHING`) |
+| `docs/schema.sql` | DDL completo — crea todas las tablas, sequences, constraints e indices desde cero |
+| `docs/reset_db.sql` | DROP CASCADE de todas las tablas + `\i schema.sql` — uso en desarrollo/pruebas |
+| `docs/seed_data.sql` | Datos de prueba idempotentes (`ON CONFLICT DO NOTHING`) |
 
 ### Contenido del seed
 
@@ -412,13 +505,13 @@ Script SQL idempotente. Cada seccion termina con `SELECT setval(...)` para sincr
 
 | Tabla | Registros | Detalle |
 |---|---|---|
-| `users` | 10 | 1 admin, 2 supervisors, 3 leaders, 2 operators, 2 viewers. `viewer_iris` inactiva. |
-| `materials` | 20 | Materiales industriales: acero, tornilleria, pintura, sensores, EPP, etc. |
-| `production_lines` | 6 | Lineas A–E activas. Linea F (Mantenimiento) inactiva. |
-| `suppliers` | 10 | Proveedores mexicanos. Proveedor 10 (Sensores y Control SA) inactivo. |
-| `supplier_receipts` | 30 | Distribuidas en los ultimos 60 dias. |
-| `production_requests` | 15 | Mix de DRAFT/SUBMITTED/APPROVED/REJECTED/CANCELLED. |
-| `production_request_items` | 27 | 1–2 items por orden, referenciando materiales reales. |
+| `users` | 15 | 1 admin, 3 supervisors, 4 leaders, 4 operators, 3 viewers. `viewer_iris` inactiva. |
+| `materials` | 50 | Metales, tornilleria, pinturas, electricos, tuberias, lubricantes, soldadura, instrumentacion, EPP, herramientas y empaque. |
+| `production_lines` | 8 | Lineas A–E y G–H activas. Linea F (Mantenimiento) inactiva. |
+| `suppliers` | 20 | Proveedores mexicanos con diversidad geografica. 2 inactivos. |
+| `supplier_receipts` | 80 | Distribuidas en los ultimos 90 dias. |
+| `production_requests` | 35 | Mix de DRAFT/SUBMITTED/APPROVED/REJECTED/CANCELLED. 2 desactivadas (is_active=FALSE). |
+| `production_request_items` | 76 | 2–3 items por orden en promedio, referenciando materiales reales. |
 
 **Contrasena de todos los usuarios:** `Admin1234!`
 
