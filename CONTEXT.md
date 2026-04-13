@@ -253,33 +253,44 @@ almacena siempre en `_current_entity_id` (no en variables especificas por modulo
 ### Modulo Ordenes de Produccion — Vista
 - [x] Archivo `.ui` (`production_request_view.ui`) con layout completo
 - [x] Signals declarados: `save_requested`, `submit_requested`, `approve_requested`, `reject_requested`, `deactivate_requested`, `cancel_requested`, `close_requested`, `selected_line`, `selected_material`, `add_item_requested`, `remove_item_requested`
-- [x] `btn_save`, `btn_cancel`, `btn_close`, `btn_select_line`, `btn_select_material`, `btn_add_item` conectados
+- [x] `btn_save`, `btn_cancel`, `btn_close`, `btn_select_line`, `btn_select_material`, `btn_add_item`, `btn_remove_item` conectados
 - [x] `display_selected_material(material)` y `display_selected_line(line)` implementados
-- [x] `get_selected_material_and_line_info()` — retorna dict con material_id, line_id, quantity
+- [x] `get_selected_material_and_line_info()` — retorna dict con `material_id`, `line_id`, `quantity` (None si vacio), `unit`
 - [x] `display_added_item(item)` — agrega fila a `tableItems` eficientemente (solo la fila nueva)
-- [x] `tableItems` configurado con 3 columnas: Material ID, Line ID, Quantity
-- [x] `self.material_id` y `self.line_id` inicializados en `__init__` como `None`
-- [ ] `btn_submit`, `btn_approve`, `btn_reject`, `btn_deactivate` — comentados, sin conectar
-- [ ] `btn_remove_item` — comentado, sin conectar
-- [ ] `get_form_data()`, `load_requests()`, `clear_form()` — pendientes
+- [x] `tableItems` configurado con 4 columnas: Line ID, Material ID, Quantity, Unit
+- [x] `self.material_id`, `self.line_id`, `self.items` inicializados en `__init__`
+- [x] `get_index_from_selected_item()` — retorna indice de fila seleccionada en `tableItems`
+- [x] `remove_item_from_table(index)` — elimina fila de `tableItems` y del lista `items`
+- [x] `load_user_information(user_info)` — muestra nombre y rol en `label_user_name` / `label_user_role`
+- [ ] `btn_submit`, `btn_approve`, `btn_reject`, `btn_deactivate` — comentados, sin conectar (lineas 51–54)
+- [ ] `clear_form()` — parcial: limpia inputs pero NO resetea `material_id`, `line_id`, `items` ni `tableItems`
+- [ ] `get_form_data()` — pendiente (retornar `line_id` e `items` para el presenter)
+- [ ] `load_requests(requests)` — pendiente (poblar `tableWidget` con lista de ordenes)
+- [ ] `get_selected_request_data()` — pendiente (leer fila seleccionada de `tableWidget`)
+- [ ] `enable_submit(v)`, `enable_approve_reject(v)`, `enable_deactivate(v)` — pendientes (para `_apply_permissions`)
 
 ### Modulo Ordenes de Produccion — Presenter
 - [x] Clase `ProductionRequestPresenter` creada, hereda `BasePresenter`
 - [x] Registrado en `main_application.py` — `open_request_form()` implementado
-- [x] `_connect_signals()` — conecta `selected_material`, `selected_line`, `add_item_requested`
+- [x] `_connect_signals()` — conecta `selected_material`, `selected_line`, `add_item_requested`, `remove_item_requested`
 - [x] `_handling_selected_material()` — verifica permiso, abre GenericView para material
 - [x] `_handling_selected_line()` — verifica permiso, abre GenericView para linea
-- [x] `_on_selected_material()` / `_on_selected_line()` — callbacks de GenericView, llaman display en view
+- [x] `_on_selected_material()` — callback de GenericView: guarda en `_selected_material` y llama `display_selected_material`
+- [x] `_on_selected_line()` — callback de GenericView: guarda en `_selected_line` y llama `display_selected_line`
 - [x] `_on_add_item_requested()` — verifica permiso, lee datos de view, valida, llama `display_added_item`
-- [x] `_selected_material` y `_selected_line` como atributos de estado (`dict | None`)
-- [ ] `_load_init_data()` — pendiente
-- [ ] `_handle_save()` — pendiente (crear DRAFT con items)
+- [x] `_on_remove_item_requested()` — verifica permiso, obtiene indice seleccionado, llama `remove_item_from_table`
+- [x] `_selected_material` y `_selected_line` como atributos de estado (`dict | None`) — correctamente asignados en callbacks
+- [x] `_clear_form()` — resetea `_selected_material`, `_selected_line` y llama `view.clear_form()`
+- [x] `_load_user_information_to_view()` — llamado en `__init__`
+- [ ] `_connect_signals()` — faltan: `save_requested`, `cancel_requested`, `submit_requested`, `approve_requested`, `reject_requested`, `deactivate_requested`
+- [ ] `_load_init_data()` — pendiente (cargar lista de ordenes al abrir el formulario)
+- [ ] `_handle_save()` — pendiente (crear DRAFT con items; retorno del modelo es `tuple[bool, str|None, int|None]`)
 - [ ] `_handle_submit()` — pendiente (DRAFT → SUBMITTED)
-- [ ] `_handle_approve()` — pendiente (SUBMITTED → APPROVED)
+- [ ] `_handle_approve()` — pendiente (SUBMITTED → APPROVED con `approved_by`)
 - [ ] `_handle_reject()` — pendiente (SUBMITTED → REJECTED)
-- [ ] `_handle_deactivate()` — pendiente (marcar is_active = FALSE)
-- [ ] `_handle_cancel()` — pendiente
-- [ ] `_apply_permissions()` — pendiente (ocultar botones segun rol)
+- [ ] `_handle_deactivate()` — pendiente (confirmacion + marcar `is_active = FALSE`)
+- [ ] `_handle_cancel()` — pendiente (limpiar form + `_exit_edit_mode`)
+- [ ] `_apply_permissions()` — pendiente (ocultar botones segun rol via `enable_*` en la vista)
 
 ### Modulo Ordenes de Produccion — Modelo
 - [x] `create_request` (con items, transaccion atomica) — completo
@@ -344,35 +355,74 @@ almacena siempre en `_current_entity_id` (no en variables especificas por modulo
 
 ## Funcionalidades Pendientes / Incompletas
 
-### Modulo Ordenes de Produccion (Production Requests)
-- [ ] **Presenter parcialmente implementado** — faltan handlers de save, submit, approve, reject, deactivate, cancel, load_init_data, apply_permissions
-- [ ] Vista — conectar `btn_submit`, `btn_approve`, `btn_reject`, `btn_deactivate`, `btn_remove_item`
-- [ ] Vista — implementar `get_form_data()`, `load_requests()`, `clear_form()`
-- [ ] Auditoria integrada en el presenter
+### Fase 1 — Production Requests (completar modulo)
 
-### Modulo Settings
+#### Vista (`production_request_view.py`)
+- [ ] **V1** Descomentar y corregir conexiones de `btn_submit`, `btn_approve`, `btn_reject`, `btn_deactivate` (lineas 51–54) — cambiar por `clicked.connect(signal.emit)` directo
+- [ ] **V2** Completar `clear_form()` — agregar reset de `self.material_id = None`, `self.line_id = None`, `self.items = []`, `self.tableItems.setRowCount(0)`
+- [ ] **V3** Agregar `get_form_data()` — retorna `{"line_id": self.line_id, "items": self.items}`
+- [ ] **V4** Agregar `load_requests(requests)` — pobla `tableWidget` con la lista de ordenes via `FormatComponents`
+- [ ] **V5** Agregar `get_selected_request_data()` — lee fila seleccionada de `tableWidget`, retorna dict con `request_id` y `status`
+- [ ] **V6** Agregar `enable_submit(v)`, `enable_approve_reject(v)`, `enable_deactivate(v)` — para `_apply_permissions()` del presenter
+
+#### Presenter (`production_request_presenter.py`)
+- [ ] **P1** Completar `_connect_signals()` — agregar `save_requested`, `cancel_requested`, `submit_requested`, `approve_requested`, `reject_requested`, `deactivate_requested`
+- [ ] **P2** Agregar `_load_init_data()` — llama `ProductionRequestModel.get_all_requests()`, pasa resultado a `view.load_requests()`
+- [ ] **P3** Agregar `_handle_cancel()` — llama `_clear_form()` y `_exit_edit_mode()`
+- [ ] **P4** Agregar `_apply_permissions()` — 3 checks de permiso → llama `enable_submit()`, `enable_approve_reject()`, `enable_deactivate()` en la vista
+- [ ] **P5** Agregar `_handle_save()` — valida `line_id` e `items` no vacios, construye payload desde `view.items` (cada item ya tiene `unit`), llama `model.create_request()` desempacando **3 valores** `(success, error, request_id)`, audita `PRODUCTION_REQUESTS_CREATED`
+- [ ] **P6** Agregar `_handle_submit()` — obtiene seleccion via `get_selected_request_data()`, llama `model.update_status_request(id, "SUBMITTED")`, audita `PRODUCTION_REQUESTS_SUBMITTED`
+- [ ] **P7** Agregar `_handle_approve()` — igual que P6 con `"APPROVED"` y `approved_by=self.current_user.id`, audita `PRODUCTION_REQUESTS_APPROVED`
+- [ ] **P8** Agregar `_handle_reject()` — igual que P6 con `"REJECTED"`, audita `PRODUCTION_REQUESTS_REJECTED`
+- [ ] **P9** Agregar `_handle_deactivate()` — `QMessageBox` de confirmacion + `model.deactivate_request(id)`, audita `PRODUCTION_REQUESTS_DEACTIVATED`
+
+#### Dominio (`permissions.py`)
+- [ ] **D1** Agregar `UserRole.OPERATOR` a `PRODUCTION_REQUESTS_VIEW` (linea 13) — solo VIEW, sin CREATE ni ninguna otra accion
+
+### Fase 2 — Inventario Real
+
+> El campo `stock_quantity` existe en la tabla `materials` pero ningun modelo lo lee ni lo escribe.
+> Las recepciones y las ordenes aprobadas no tienen impacto en el stock. No existe tabla de movimientos.
+
+- [ ] **I1** Migracion SQL `003_inventory.sql` — agregar `min_stock NUMERIC(10,2) DEFAULT 0` a `materials`, agregar `category VARCHAR(100)` a `materials`, crear tabla `inventory_movements` (tipo ENTRY/EXIT, `material_id`, `quantity`, `reference_id`, `reference_type`, `created_by`, `created_at`)
+- [ ] **I2** Conectar recepciones → stock — al guardar una recepcion: `stock_quantity += quantity_received` en `materials` y registrar fila en `inventory_movements` (tipo ENTRY, `reference_id = receipt_id`)
+- [ ] **I3** Conectar production requests → stock — al aprobar una orden: `stock_quantity -= quantity` por cada item en `production_request_items`, con validacion de stock suficiente antes de aprobar, y registro en `inventory_movements` (tipo EXIT, `reference_id = request_id`)
+- [ ] **I4** Mostrar `stock_quantity` en la vista de materiales — agregar columna en `MaterialModel.COLUMNS`, mostrarla en la tabla, resaltar en rojo si `stock_quantity < min_stock`
+
+### Fase 3 — Reportes
+
+- [ ] **R1** Reporte de stock actual — tabla con todos los materiales, stock actual, minimo, y alerta visual; exportable a PDF
+- [ ] **R2** Reporte de movimientos por periodo — filtro por fecha inicio/fin, lista de entradas y salidas con referencia; exportable a PDF
+- [ ] **R3** Reporte de recepciones por proveedor — agrupado por proveedor con totales por material
+
+### Fase 4 — Pulido para Venta
+
+- [ ] **Q1** Categorias de materiales — agregar filtro por `category` en la vista de materiales (depende de I1)
+- [ ] **Q2** Dashboard con KPIs en pantalla principal — stock total valorizado, movimientos del dia, ordenes pendientes de aprobacion
+- [ ] **Q3** Exportacion a Excel de cualquier tabla (materiales, recepciones, ordenes)
+- [ ] **Q4** Empaquetado con Docker — `Dockerfile` + `docker-compose.yml` con PostgreSQL + app para instalacion limpia en cliente
+
+### Pendientes Existentes (sin cambio de prioridad)
+
+#### Modulo Settings
 - [ ] Vista de configuracion — pendiente de crear (View + Presenter + `.ui`)
 - [ ] Selector de tema (dark/light) con recarga de estilos en caliente via `StyleManager`
 - [ ] Registrar `open_settings_form()` en `main_application.py`
 - [ ] Icono `IMG-Settings.png` pendiente en `src/assets/icons/`
 
-### Modulo Recepciones
+#### Modulo Recepciones
 - [ ] Eliminar recepcion — metodo en modelo existe pero sin boton ni handler en vista/presenter
 
-### Modulo Usuarios
+#### Modulo Usuarios
 - [ ] Cambio de contrasena — el usuario comun NO puede cambiar su propia contrasena desde la UI; debe solicitarlo a un `admin` o `supervisor`, quienes pueden resetear la contrasena de cualquier usuario seleccionado
 
-### Pruebas
+#### Pruebas
 - [ ] Tests de presenters (ningun presenter tiene cobertura de tests)
 - [ ] Tests de vistas
 - [ ] Tests de integracion (carpeta `tests/integration/` existe pero vacia)
 - [ ] Tests para `ProductionRequestModel`
 - [ ] Tests para `SupplierReceiptModel`
 - [ ] Tests para `ProductionLineModel`
-
-### Mejoras Pendientes
-- [ ] `_apply_permissions()` en `ProductionRequestPresenter` — ocultar botones segun rol
-- [ ] `OPERATOR` sin ningun permiso de production requests — revisar si deberia tener VIEW o CREATE
 
 ---
 
@@ -385,10 +435,14 @@ almacena siempre en `_current_entity_id` (no en variables especificas por modulo
 - [x] `PRODUCTION_REQUESTS_CANCELED` alineado a `canceled` (string value) — consistente con el resto
 - [x] `SUPPLIER_*` corregidos a `SUPPLIERS_*` (plural) y agregado `SUPPLIERS_DELETED`
 - [x] `PRODUCTION_REQUESTS_SUBMIT` y `PRODUCTION_REQUESTS_EDIT` sin roles en `permissions.py` — corregido
-- [x] `tableItems` sin columnas configuradas — corregido con `setColumnCount(3)` en `initialize_components`
+- [x] `tableItems` sin columnas configuradas — corregido con `setColumnCount(4)` en `initialize_components` (4 columnas: Line ID, Material ID, Quantity, Unit)
 - [x] `display_added_item` repintaba toda la tabla en cada item — refactorizado para agregar solo la fila nueva
 - [x] `getattr` innecesario en `get_selected_material_and_line_info` — simplificado a acceso directo
 - [x] `quantity` retornaba `"N/A"` en lugar de `None` cuando el campo estaba vacio — corregido a `None`
+- [x] `_on_selected_material` y `_on_selected_line` no asignaban estado al presenter — corregido, ahora guardan en `self._selected_material` y `self._selected_line`
+- [x] `btn_remove_item` no estaba conectado en la vista — corregido, conectado a `remove_item_requested.emit` (linea 64)
+- [x] `self.items` no se inicializaba en `__init__` — corregido, `self.items: list[dict] = []` en linea 36
+- [x] `get_index_from_selected_item` y `remove_item_from_table` faltaban en la vista — implementados (lineas 84–97)
 
 ---
 
@@ -403,6 +457,8 @@ almacena siempre en `_current_entity_id` (no en variables especificas por modulo
 - [x] Toggle del panel lateral refactorizado con diccionarios (DRY) en lugar de lineas repetidas
 - [x] Permiso `PRODUCTION_REQUESTS_DEACTIVATE` agregado con roles ADMIN, SUPERVISOR
 - [x] Evento `GENERIC_ENTITY_DENIED` en `AuditDefinition` para accesos denegados reutilizables
+- [x] `tableItems` actualizado a 4 columnas (Line ID, Material ID, Quantity, Unit) — unit heredado del material seleccionado
+- [x] `_on_selected_material` y `_on_selected_line` en el presenter ahora guardan estado en `_selected_material` / `_selected_line` correctamente
 
 ---
 

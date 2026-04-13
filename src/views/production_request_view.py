@@ -53,7 +53,7 @@ class ProductionRequestView(QWidget):
         # self.btn_reject.clicked.connect(self._on_reject_clicked)
         # self.btn_deactivate.clicked.connect(self._on_deactivate_clicked)
         self.btn_cancel.clicked.connect(self.cancel_requested.emit)
-        self.btn_close.clicked.connect(self.close_requested.emit)
+        self.btn_close.clicked.connect(self.close)
 
         # Connect selector buttons
         self.btn_select_line.clicked.connect(self.selected_line.emit)
@@ -61,15 +61,15 @@ class ProductionRequestView(QWidget):
 
         # Connect item management buttons
         self.btn_add_item.clicked.connect(self.add_item_requested.emit)
-        # self.btn_remove_item.clicked.connect(self._on_remove_item_clicked)
+        self.btn_remove_item.clicked.connect(self.remove_item_requested.emit)
 
         # Table setup
-        self.tableItems.setColumnCount(3)
+        self.tableItems.setColumnCount(4)
         # Behavior configuration
         self.tableItems.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
         self.tableItems.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
         self.tableItems.setSelectionMode(QTableWidget.SelectionMode.SingleSelection)
-        self.tableItems.setHorizontalHeaderLabels(["Line ID", "Material ID", "Quantity"])
+        self.tableItems.setHorizontalHeaderLabels(["Line ID", "Material ID", "Quantity", "Unit"])
  
 
     def get_selected_material_and_line_info(self) -> dict | None:
@@ -77,9 +77,24 @@ class ProductionRequestView(QWidget):
         return {
             "material_id": self.material_id,
             "line_id": self.line_id,
-            "quantity": self.input_quantity.text() or "N/A"
+            "quantity": self.input_quantity.text() or None,
+            "unit": self.label_unit.text() or None
         }
         
+    def get_index_from_selected_item(self) -> int | None:
+        
+        selected_items = self.tableItems.selectedItems()
+        if not selected_items:
+            return None
+        
+        selected_row = selected_items[0].row()
+        return selected_row
+    
+    def remove_item_from_table(self, index: int) -> None:
+        
+        if 0 <= index < len(self.items):
+            self.items.pop(index)
+            self.tableItems.removeRow(index)        
         
     def display_added_item(self, item: dict) -> None:
         
@@ -90,12 +105,14 @@ class ProductionRequestView(QWidget):
         self.tableItems.setItem(row, 0, QTableWidgetItem(str(item.get("line_id", "N/A"))))
         self.tableItems.setItem(row, 1, QTableWidgetItem(str(item.get("material_id", "N/A"))))
         self.tableItems.setItem(row, 2, QTableWidgetItem(str(item.get("quantity", "N/A"))))
+        self.tableItems.setItem(row, 3, QTableWidgetItem(str(item.get("unit", "N/A"))))
    
     def display_selected_material(self, material: dict) -> None:
         
         # Extract relevant info from material dict 
         self.material_id = material.get("id", "")
         material_name = material.get("material_name", "")
+        unit = material.get("unit", "")
         
         display_format = (
             f"ID: {self.material_id}\n"
@@ -103,6 +120,7 @@ class ProductionRequestView(QWidget):
         )
         
         self.label_material.setText(display_format)
+        self.label_unit.setText(unit)
         
     def display_selected_line(self, line: dict) -> None:
         
@@ -117,7 +135,13 @@ class ProductionRequestView(QWidget):
         
         self.label_line.setText(display_format)
         
+    def load_user_information(self, user_info: dict) -> None:
+       self.label_user_name.setText(f"UserName: {user_info.get('username', '')}")
+       self.label_user_role.setText(f"UserRole: {user_info.get('user_role', '')}")
+       
     def clear_form(self) -> None:
         self.input_quantity.clear()
         self.label_material.setText("0")
         self.label_line.setText("0")
+        self.label_unit.setText("0")
+

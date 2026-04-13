@@ -17,12 +17,14 @@ class ProductionRequestPresenter(BasePresenter):
         self._selected_line: dict | None = None
         
         self._connect_signals()
+        self._load_user_information_to_view()
         
         
     def _connect_signals(self):
         self.view.selected_material.connect(self._handling_selected_material)
         self.view.selected_line.connect(self._handling_selected_line)
         self.view.add_item_requested.connect(self._on_add_item_requested)
+        self.view.remove_item_requested.connect(self._on_remove_item_requested)
         
     def _on_add_item_requested(self):
         if not PermissionService.has_permission(self.current_user, Permission.PRODUCTION_REQUESTS_CREATE):
@@ -44,6 +46,26 @@ class ProductionRequestPresenter(BasePresenter):
         
         self.view.display_added_item(data)
         self._clear_form()
+        
+    def _on_remove_item_requested(self):
+        if not PermissionService.has_permission(self.current_user, Permission.PRODUCTION_REQUESTS_CREATE):
+            self._emit_error("You do not have permission to remove items from production requests.")
+            
+            AuditService.log_action(
+                user_id=self.current_user.id,
+                action=AuditDefinition.PRODUCTION_REQUESTS_DENIED,
+                success=False,
+                meta={"reason": "Insufficient permissions to remove items from production requests."}
+            )
+            return
+        
+        current_index = self.view.get_index_from_selected_item()
+        
+        if current_index is None:
+            self._emit_error("Please select an item from the table to remove.")
+            return
+        
+        self.view.remove_item_from_table(current_index)
     
     def _clear_form(self) -> None:
         self._selected_material = None
@@ -79,7 +101,11 @@ class ProductionRequestPresenter(BasePresenter):
         self.main_app.open_generic_form(entity_type="production_line", on_item_selected=self._on_selected_line)
         
     def _on_selected_material(self, material: dict) -> None:
+        self._selected_material = material
         self.view.display_selected_material(material)
         
     def _on_selected_line(self, line: dict) -> None:
+        self._selected_line = line
         self.view.display_selected_line(line)
+        
+   
